@@ -9,6 +9,8 @@ class Product {
   final int? categoryId;
   final int? brandId;
   final int baseUnitId;
+  final int? purchaseUnitId;
+  final double saleUnitsPerPurchaseUnit;
   final String? sku;
   final String? barcode;
   final String name;
@@ -30,6 +32,8 @@ class Product {
     this.categoryId,
     this.brandId,
     required this.baseUnitId,
+    this.purchaseUnitId,
+    this.saleUnitsPerPurchaseUnit = 1,
     this.sku,
     this.barcode,
     required this.name,
@@ -90,6 +94,8 @@ class ProductDraft {
   final int? categoryId;
   final int? brandId;
   final int baseUnitId;
+  final int? purchaseUnitId;
+  final double saleUnitsPerPurchaseUnit;
   final String? sku;
   final String? barcode;
   final String name;
@@ -99,13 +105,18 @@ class ProductDraft {
   final double stockMin;
   final double? stockMax;
   final String? photoPath;
+  /// Stock inicial directo en unidades base (legacy, usar purchasedQty).
   final double initialStock;
+  /// Unidades de compra compradas (nuevo). Stock = purchasedQty × saleUnitsPerPurchaseUnit.
+  final double purchasedQty;
 
   const ProductDraft({
     required this.storeId,
     this.categoryId,
     this.brandId,
     required this.baseUnitId,
+    this.purchaseUnitId,
+    this.saleUnitsPerPurchaseUnit = 1,
     this.sku,
     this.barcode,
     required this.name,
@@ -116,6 +127,7 @@ class ProductDraft {
     this.stockMax,
     this.photoPath,
     this.initialStock = 0,
+    this.purchasedQty = 0,
   });
 }
 

@@ -265,6 +265,8 @@ class DriftInventoryRepository implements InventoryRepository {
         categoryId: p.categoryId,
         brandId: p.brandId,
         baseUnitId: p.baseUnitId,
+        purchaseUnitId: p.purchaseUnitId,
+        saleUnitsPerPurchaseUnit: p.saleUnitsPerPurchaseUnit,
         sku: p.sku,
         barcode: p.barcode,
         name: p.name,

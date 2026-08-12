@@ -78,19 +78,30 @@ class DriftProductRepository implements ProductRepository {
     try {
       final now = DateTime.now();
       final id = await database.transaction(() async {
+        // Calcular costo por unidad base y stock inicial en unidades base.
+        final unitsPerPkg = draft.saleUnitsPerPurchaseUnit > 0
+            ? draft.saleUnitsPerPurchaseUnit
+            : 1.0;
+        final costPerBase = draft.purchasePrice.cents > 0
+            ? (draft.purchasePrice.cents / unitsPerPkg).round()
+            : 0;
+        final qtyInBase = draft.purchasedQty * unitsPerPkg;
+
         final productId = await _productDao.insertProduct(
           db.ProductsCompanion.insert(
             storeId: draft.storeId,
             categoryId: _optInt(draft.categoryId),
             brandId: _optInt(draft.brandId),
             baseUnitId: draft.baseUnitId,
+            purchaseUnitId: _optInt(draft.purchaseUnitId),
+            saleUnitsPerPurchaseUnit: Value(draft.saleUnitsPerPurchaseUnit),
             sku: _optText(draft.sku),
             barcode: _optText(draft.barcode),
             name: draft.name,
             description: _optText(draft.description),
             purchasePrice: Value(draft.purchasePrice.cents),
             salePrice: Value(draft.salePrice.cents),
-            costPrice: Value(draft.purchasePrice.cents),
+            costPrice: Value(costPerBase),
             stockMin: Value(draft.stockMin),
             stockMax: draft.stockMax == null
                 ? const Value.absent()
@@ -99,8 +110,11 @@ class DriftProductRepository implements ProductRepository {
           ),
         );
         await _saveConversions(productId, conversions);
-        if (draft.initialStock > 0) {
-          await _applyInitialStock(productId, draft.initialStock, now);
+        // Stock inicial: purchasedQty × saleUnitsPerPurchaseUnit (nuevo) o
+        // initialStock directo en unidades base (legacy).
+        final effectiveInitialStock = qtyInBase > 0 ? qtyInBase : draft.initialStock;
+        if (effectiveInitialStock > 0) {
+          await _applyInitialStock(productId, effectiveInitialStock, now);
         }
         await _auditDao.insertAudit(db.AuditLogsCompanion.insert(
           action: 'create',
@@ -134,6 +148,8 @@ class DriftProductRepository implements ProductRepository {
               categoryId: _optInt(draft.categoryId),
               brandId: _optInt(draft.brandId),
               baseUnitId: Value(draft.baseUnitId),
+              purchaseUnitId: _optInt(draft.purchaseUnitId),
+              saleUnitsPerPurchaseUnit: Value(draft.saleUnitsPerPurchaseUnit),
               sku: _optText(draft.sku),
               barcode: _optText(draft.barcode),
               name: Value(draft.name),
@@ -346,6 +362,8 @@ class DriftProductRepository implements ProductRepository {
       categoryId: p.categoryId,
       brandId: p.brandId,
       baseUnitId: p.baseUnitId,
+      purchaseUnitId: p.purchaseUnitId,
+      saleUnitsPerPurchaseUnit: p.saleUnitsPerPurchaseUnit,
       sku: p.sku,
       barcode: p.barcode,
       name: p.name,
