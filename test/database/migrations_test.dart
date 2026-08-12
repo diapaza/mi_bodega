@@ -22,7 +22,7 @@ void main() {
 
     test('crea el esquema en la versión correcta', () async {
       final db = await openTestMemoryDatabase();
-      expect(db.schemaVersion, 3);
+      expect(db.schemaVersion, 4);
       // Las tablas existen.
       await db.select(db.stores).get();
       await db.select(db.users).get();
@@ -52,7 +52,7 @@ void main() {
       final manager = testFileManager(dbPath);
       await manager.init();
       final db2 = manager.database;
-      expect(db2.schemaVersion, 3);
+      expect(db2.schemaVersion, 4);
       final store = await DriftStoreRepository(db2).getStore();
       expect(store.orNull?.name, 'Bodega Persistente');
 

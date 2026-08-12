@@ -69,7 +69,7 @@ void main() {
       final meta = result.orNull!;
       expect(meta.filename, endsWith('.zip'));
       expect(meta.checksum, isNotEmpty);
-      expect(meta.schemaVersion, 3);
+      expect(meta.schemaVersion, 4);
 
       final zipFile = File('${backupDir.path}/${meta.filename}');
       expect(await zipFile.exists(), isTrue);
@@ -130,7 +130,7 @@ void main() {
       final restored = await restoreService
           .restore('${backupDir.path}/${meta.filename}');
       expect(restored.isOk, isTrue, reason: '$restored');
-      expect(restored.orNull!.schemaVersion, 3);
+      expect(restored.orNull!.schemaVersion, 4);
 
       final storeAfter = await DriftStoreRepository(targetManager.database).getStore();
       expect(storeAfter.orNull?.name, 'Bodega Backup');
