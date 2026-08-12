@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Campo de texto reutilizable de MiBodega.
-class MbTextField extends StatelessWidget {
+class MbTextField extends StatefulWidget {
   final TextEditingController? controller;
   final String? label;
   final String? hint;
@@ -20,6 +20,8 @@ class MbTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final ValueChanged<String>? onChanged;
   final void Function(String)? onSubmitted;
+  /// Si es true, al recibir foco se limpia el contenido del controller.
+  final bool clearOnFocus;
 
   const MbTextField({
     super.key,
@@ -40,31 +42,66 @@ class MbTextField extends StatelessWidget {
     this.inputFormatters,
     this.onChanged,
     this.onSubmitted,
+    this.clearOnFocus = false,
   });
+
+  @override
+  State<MbTextField> createState() => _MbTextFieldState();
+}
+
+class _MbTextFieldState extends State<MbTextField> {
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (_focusNode.hasFocus && widget.clearOnFocus) {
+      final text = widget.controller?.text ?? '';
+      if (text.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          widget.controller?.clear();
+          widget.onChanged?.call('');
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return TextField(
-      controller: controller,
-      enabled: enabled,
-      obscureText: obscureText,
-      autofocus: autofocus,
-      keyboardType: keyboardType,
-      maxLines: obscureText ? 1 : maxLines,
-      maxLength: maxLength,
-      textCapitalization: textCapitalization,
-      inputFormatters: inputFormatters,
-      onChanged: onChanged,
-      onSubmitted: onSubmitted,
+      controller: widget.controller,
+      focusNode: _focusNode,
+      enabled: widget.enabled,
+      obscureText: widget.obscureText,
+      autofocus: widget.autofocus,
+      keyboardType: widget.keyboardType,
+      maxLines: widget.obscureText ? 1 : widget.maxLines,
+      maxLength: widget.maxLength,
+      textCapitalization: widget.textCapitalization,
+      inputFormatters: widget.inputFormatters,
+      onChanged: widget.onChanged,
+      onSubmitted: widget.onSubmitted,
       style: TextStyle(fontSize: 16),
       decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        errorText: errorText,
-        helperText: helperText,
-        prefixIcon: prefixIcon,
-        suffixIcon: suffix,
-        counterText: maxLength == null ? '' : null,
+        labelText: widget.label,
+        hintText: widget.hint,
+        errorText: widget.errorText,
+        helperText: widget.helperText,
+        prefixIcon: widget.prefixIcon,
+        suffixIcon: widget.suffix,
+        counterText: widget.maxLength == null ? '' : null,
       ),
     );
   }
