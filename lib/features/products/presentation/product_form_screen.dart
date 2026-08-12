@@ -35,11 +35,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _sale = TextEditingController(text: '0.00');
   final _stockMin = TextEditingController(text: '0');
   final _stockMax = TextEditingController();
-  final _initialStock = TextEditingController();
+  final _unitsPerPkg = TextEditingController(text: '1');
+  final _purchasedQty = TextEditingController(text: '0');
 
   int? _categoryId;
   int? _brandId;
   int? _unitId;
+  int? _purchaseUnitId;
   String? _photoPath;
   String? _originalPhotoPath;
   List<ConversionDraft> _conversions = [];
@@ -75,6 +77,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       _categoryId = product.categoryId;
       _brandId = product.brandId;
       _unitId = product.baseUnitId;
+      _purchaseUnitId = product.purchaseUnitId;
+      _unitsPerPkg.text = _fmtQty(product.saleUnitsPerPurchaseUnit);
       _photoPath = product.photoPath;
       _originalPhotoPath = product.photoPath;
       _conversions = [
@@ -97,7 +101,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   @override
   void dispose() {
     for (final c in [
-      _name, _sku, _barcode, _description, _purchase, _sale, _stockMin, _stockMax, _initialStock,
+      _name, _sku, _barcode, _description, _purchase, _sale, _stockMin, _stockMax,
+      _unitsPerPkg, _purchasedQty,
     ]) {
       c.dispose();
     }
@@ -171,6 +176,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       categoryId: _categoryId,
       brandId: _brandId,
       baseUnitId: _unitId!,
+      purchaseUnitId: _purchaseUnitId,
+      saleUnitsPerPurchaseUnit: double.tryParse(_unitsPerPkg.text) ?? 1,
       sku: _sku.text.trim().isEmpty ? null : _sku.text.trim(),
       barcode: _barcode.text.trim().isEmpty ? null : _barcode.text.trim(),
       name: _name.text.trim(),
@@ -182,7 +189,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           ? null
           : double.tryParse(_stockMax.text),
       photoPath: _photoPath,
-      initialStock: _isEditing ? 0 : (double.tryParse(_initialStock.text) ?? 0),
+      purchasedQty: _isEditing ? 0 : (double.tryParse(_purchasedQty.text) ?? 0),
     );
     final conversions = [
       for (final c in _conversions)
@@ -279,8 +286,24 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       return Scaffold(appBar: AppBar(), body: const Center(child: CircularProgressIndicator()));
     }
 
+    final theme = Theme.of(context);
+    final colors = context.colors;
     final salePrice = _money(_sale.text);
     final purchasePrice = _money(_purchase.text);
+    final unitsPerPkg = double.tryParse(_unitsPerPkg.text) ?? 1;
+    final costPerBase = unitsPerPkg > 0
+        ? Money((purchasePrice.cents / unitsPerPkg).round())
+        : purchasePrice;
+
+    // Nombre de la unidad de compra para etiquetas.
+    final purchaseUnitName = _purchaseUnitId != null
+        ? units.where((u) => u.id == _purchaseUnitId).map((u) => u.name).firstOrNull ?? 'compra'
+        : null;
+
+    // Nombre de la unidad base de venta para etiquetas.
+    final baseUnitName = _unitId != null
+        ? units.where((u) => u.id == _unitId).map((u) => u.name).firstOrNull ?? 'unidad'
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -368,45 +391,74 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               const SizedBox(height: 12),
               DropdownButtonFormField<int?>(
                 initialValue: _unitId,
-                decoration: const InputDecoration(labelText: 'Unidad base *'),
+                decoration: const InputDecoration(labelText: 'Unidad base de venta *'),
                 items: [
                   const DropdownMenuItem(value: null, child: Text('Seleccionar unidad')),
                   for (final u in units)
                     DropdownMenuItem(value: u.id, child: Text('${u.name} (${u.symbol})')),
                 ],
                 onChanged: (v) {
-                  print('[ProductForm] Unidad changed: $v');
-                  setState(() => _unitId = v);
+                  setState(() {
+                    _unitId = v;
+                    // Si no hay unidad de compra seleccionada, usar la base.
+                    _purchaseUnitId ??= v;
+                  });
                 },
               ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<int?>(
+                initialValue: _purchaseUnitId,
+                decoration: const InputDecoration(labelText: 'Unidad de compra *'),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('Igual que unidad base')),
+                  for (final u in units)
+                    DropdownMenuItem(value: u.id, child: Text('${u.name} (${u.symbol})')),
+                ],
+                onChanged: (v) => setState(() => _purchaseUnitId = v),
+              ),
+              const SizedBox(height: 12),
+              MbTextField(
+                controller: _unitsPerPkg,
+                label: 'Unidades de venta por unidad de compra',
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => setState(() {}),
+                clearOnFocus: true,
+              ),
+              if (_purchaseUnitId != null && _unitId != null && _purchaseUnitId != _unitId) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '${_unitsPerPkg.text.isEmpty ? '0' : _unitsPerPkg.text} '
+                  '${baseUnitName ?? 'unidad(es)'} por ${purchaseUnitName ?? 'compra'}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
               // --- Precios ---
               _SectionHeader(title: 'Precios'),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: MbTextField(
-                      controller: _purchase,
-                      label: 'Costo (S/)',
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: MbTextField(
-                      controller: _sale,
-                      label: 'Precio de venta (S/)',
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    ),
-                  ),
-                ],
+              MbTextField(
+                controller: _purchase,
+                label: purchaseUnitName != null
+                    ? 'Costo por $purchaseUnitName (S/)'
+                    : 'Costo unitario (S/)',
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => setState(() {}),
+                clearOnFocus: true,
               ),
               const SizedBox(height: 12),
               PriceRecommender(
-                initialCost: purchasePrice,
+                cost: costPerBase,
+                unitsPerPkg: unitsPerPkg,
+                purchaseUnitName: purchaseUnitName,
                 initialSalePrice: salePrice,
-                onApply: (price) => _sale.text = (price.cents / 100).toStringAsFixed(2),
+                onPriceChanged: (price) {
+                  final newText = (price.cents / 100).toStringAsFixed(2);
+                  if (_sale.text != newText) {
+                    _sale.text = newText;
+                  }
+                },
               ),
               const SizedBox(height: 20),
               // --- Stock ---
@@ -417,16 +469,18 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                   Expanded(
                     child: MbTextField(
                       controller: _stockMin,
-                      label: 'Stock mínimo',
+                      label: 'Stock mínimo (unidades de venta)',
                       keyboardType: TextInputType.number,
+                      clearOnFocus: true,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: MbTextField(
                       controller: _stockMax,
-                      label: 'Stock máximo (opcional)',
+                      label: 'Stock máximo (unidades de venta)',
                       keyboardType: TextInputType.number,
+                      clearOnFocus: true,
                     ),
                   ),
                 ],
@@ -434,10 +488,25 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               if (!_isEditing) ...[
                 const SizedBox(height: 12),
                 MbTextField(
-                  controller: _initialStock,
-                  label: 'Stock inicial',
-                  keyboardType: TextInputType.number,
+                  controller: _purchasedQty,
+                  label: purchaseUnitName != null
+                      ? 'Unidades de compra compradas'
+                      : 'Stock inicial',
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  clearOnFocus: true,
+                  onChanged: (_) => setState(() {}),
                 ),
+                if (purchaseUnitName != null && unitsPerPkg > 0) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Stock inicial = ${_purchasedQty.text.isEmpty ? '0' : _purchasedQty.text} '
+                    '$purchaseUnitName × $unitsPerPkg ud = '
+                    '${((double.tryParse(_purchasedQty.text) ?? 0) * unitsPerPkg).toInt()} unidades',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ],
               const SizedBox(height: 20),
               // --- Conversiones ---
