@@ -265,13 +265,14 @@ class InventoryDao extends DatabaseAccessor<AppDatabase>
 
   Stream<List<ProductStockRow>> watchLowStock(int storeId) {
     final query = select(products).join([
-      innerJoin(inventory, inventory.productId.equalsExp(products.id)),
+      leftOuterJoin(inventory, inventory.productId.equalsExp(products.id)),
     ]);
     query.where(
       products.storeId.equals(storeId) &
           products.active.equals(true) &
           products.stockMin.isBiggerThanValue(0) &
-          inventory.quantity.isSmallerOrEqual(products.stockMin),
+          (inventory.quantity.isNull() |
+              inventory.quantity.isSmallerOrEqual(products.stockMin)),
     );
     query.orderBy([OrderingTerm.desc(products.stockMin)]);
     query.limit(100);
@@ -280,12 +281,13 @@ class InventoryDao extends DatabaseAccessor<AppDatabase>
 
   Stream<List<ProductStockRow>> watchOutOfStock(int storeId) {
     final query = select(products).join([
-      innerJoin(inventory, inventory.productId.equalsExp(products.id)),
+      leftOuterJoin(inventory, inventory.productId.equalsExp(products.id)),
     ]);
     query.where(
       products.storeId.equals(storeId) &
           products.active.equals(true) &
-          inventory.quantity.isSmallerThanValue(0.0001),
+          (inventory.quantity.isNull() |
+              inventory.quantity.isSmallerThanValue(0.0001)),
     );
     query.orderBy([OrderingTerm.asc(products.name)]);
     query.limit(100);

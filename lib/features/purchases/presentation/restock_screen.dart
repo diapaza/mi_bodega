@@ -71,8 +71,12 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
       setState(() {});
       return;
     }
-    final lastCost = (await ref.read(lastPurchaseCostProvider(id).future)) ??
-        item.product.costPrice.cents;
+    final p = item.product;
+    final hasPurchaseUnit = p.purchaseUnitId != null && p.saleUnitsPerPurchaseUnit > 1;
+    final lastCost = hasPurchaseUnit
+        ? p.purchasePrice.cents
+        : (await ref.read(lastPurchaseCostProvider(id).future)) ??
+            p.costPrice.cents;
     setState(() {
       _selected[id] = _RestockDraft(
         quantity: _suggestion(item),
