@@ -26,6 +26,16 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
         // v3: motivo de anulación de ventas (trazabilidad).
         await m.addColumn(db.sales, db.sales.cancelReason);
       }
+      if (from < 4) {
+        // v4: unidad de compra y unidades de venta por unidad de compra.
+        await m.addColumn(db.products, db.products.purchaseUnitId);
+        await m.addColumn(db.products, db.products.saleUnitsPerPurchaseUnit);
+        // Backfill: productos existentes → unidad de compra = unidad base.
+        await db.customStatement(
+          'UPDATE products SET purchase_unit_id = base_unit_id '
+          'WHERE purchase_unit_id IS NULL',
+        );
+      }
     },
   );
 }

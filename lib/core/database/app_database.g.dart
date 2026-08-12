@@ -1808,6 +1808,32 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _purchaseUnitIdMeta = const VerificationMeta(
+    'purchaseUnitId',
+  );
+  @override
+  late final GeneratedColumn<int> purchaseUnitId = GeneratedColumn<int>(
+    'purchase_unit_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES units (id)',
+    ),
+  );
+  static const VerificationMeta _saleUnitsPerPurchaseUnitMeta =
+      const VerificationMeta('saleUnitsPerPurchaseUnit');
+  @override
+  late final GeneratedColumn<double> saleUnitsPerPurchaseUnit =
+      GeneratedColumn<double>(
+        'sale_units_per_purchase_unit',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(1),
+      );
   static const VerificationMeta _purchasePriceMeta = const VerificationMeta(
     'purchasePrice',
   );
@@ -1941,6 +1967,8 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     barcode,
     name,
     description,
+    purchaseUnitId,
+    saleUnitsPerPurchaseUnit,
     purchasePrice,
     salePrice,
     costPrice,
@@ -2024,6 +2052,24 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         description.isAcceptableOrUnknown(
           data['description']!,
           _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('purchase_unit_id')) {
+      context.handle(
+        _purchaseUnitIdMeta,
+        purchaseUnitId.isAcceptableOrUnknown(
+          data['purchase_unit_id']!,
+          _purchaseUnitIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sale_units_per_purchase_unit')) {
+      context.handle(
+        _saleUnitsPerPurchaseUnitMeta,
+        saleUnitsPerPurchaseUnit.isAcceptableOrUnknown(
+          data['sale_units_per_purchase_unit']!,
+          _saleUnitsPerPurchaseUnitMeta,
         ),
       );
     }
@@ -2135,6 +2181,14 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         DriftSqlType.string,
         data['${effectivePrefix}description'],
       ),
+      purchaseUnitId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}purchase_unit_id'],
+      ),
+      saleUnitsPerPurchaseUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}sale_units_per_purchase_unit'],
+      )!,
       purchasePrice: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}purchase_price'],
@@ -2195,10 +2249,18 @@ class Product extends DataClass implements Insertable<Product> {
   final String name;
   final String? description;
 
-  /// Céntimos.
+  /// Unidad en la que se compra el producto (paquete, caja, etc.).
+  /// NULL = la compra es por la unidad base.
+  final int? purchaseUnitId;
+
+  /// Cuántas unidades de venta (base) vienen en 1 unidad de compra.
+  /// Ej: 24 tarros por paquete, 6 gaseosas por paquete.
+  final double saleUnitsPerPurchaseUnit;
+
+  /// Céntimos por unidad de compra (ej: S/57.00 por paquete de 24).
   final int purchasePrice;
 
-  /// Céntimos.
+  /// Céntimos por unidad base (venta).
   final int salePrice;
 
   /// Costo promedio móvil en céntimos (base unit).
@@ -2220,6 +2282,8 @@ class Product extends DataClass implements Insertable<Product> {
     this.barcode,
     required this.name,
     this.description,
+    this.purchaseUnitId,
+    required this.saleUnitsPerPurchaseUnit,
     required this.purchasePrice,
     required this.salePrice,
     required this.costPrice,
@@ -2253,6 +2317,12 @@ class Product extends DataClass implements Insertable<Product> {
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
     }
+    if (!nullToAbsent || purchaseUnitId != null) {
+      map['purchase_unit_id'] = Variable<int>(purchaseUnitId);
+    }
+    map['sale_units_per_purchase_unit'] = Variable<double>(
+      saleUnitsPerPurchaseUnit,
+    );
     map['purchase_price'] = Variable<int>(purchasePrice);
     map['sale_price'] = Variable<int>(salePrice);
     map['cost_price'] = Variable<int>(costPrice);
@@ -2289,6 +2359,10 @@ class Product extends DataClass implements Insertable<Product> {
       description: description == null && nullToAbsent
           ? const Value.absent()
           : Value(description),
+      purchaseUnitId: purchaseUnitId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(purchaseUnitId),
+      saleUnitsPerPurchaseUnit: Value(saleUnitsPerPurchaseUnit),
       purchasePrice: Value(purchasePrice),
       salePrice: Value(salePrice),
       costPrice: Value(costPrice),
@@ -2321,6 +2395,10 @@ class Product extends DataClass implements Insertable<Product> {
       barcode: serializer.fromJson<String?>(json['barcode']),
       name: serializer.fromJson<String>(json['name']),
       description: serializer.fromJson<String?>(json['description']),
+      purchaseUnitId: serializer.fromJson<int?>(json['purchaseUnitId']),
+      saleUnitsPerPurchaseUnit: serializer.fromJson<double>(
+        json['saleUnitsPerPurchaseUnit'],
+      ),
       purchasePrice: serializer.fromJson<int>(json['purchasePrice']),
       salePrice: serializer.fromJson<int>(json['salePrice']),
       costPrice: serializer.fromJson<int>(json['costPrice']),
@@ -2346,6 +2424,10 @@ class Product extends DataClass implements Insertable<Product> {
       'barcode': serializer.toJson<String?>(barcode),
       'name': serializer.toJson<String>(name),
       'description': serializer.toJson<String?>(description),
+      'purchaseUnitId': serializer.toJson<int?>(purchaseUnitId),
+      'saleUnitsPerPurchaseUnit': serializer.toJson<double>(
+        saleUnitsPerPurchaseUnit,
+      ),
       'purchasePrice': serializer.toJson<int>(purchasePrice),
       'salePrice': serializer.toJson<int>(salePrice),
       'costPrice': serializer.toJson<int>(costPrice),
@@ -2369,6 +2451,8 @@ class Product extends DataClass implements Insertable<Product> {
     Value<String?> barcode = const Value.absent(),
     String? name,
     Value<String?> description = const Value.absent(),
+    Value<int?> purchaseUnitId = const Value.absent(),
+    double? saleUnitsPerPurchaseUnit,
     int? purchasePrice,
     int? salePrice,
     int? costPrice,
@@ -2389,6 +2473,11 @@ class Product extends DataClass implements Insertable<Product> {
     barcode: barcode.present ? barcode.value : this.barcode,
     name: name ?? this.name,
     description: description.present ? description.value : this.description,
+    purchaseUnitId: purchaseUnitId.present
+        ? purchaseUnitId.value
+        : this.purchaseUnitId,
+    saleUnitsPerPurchaseUnit:
+        saleUnitsPerPurchaseUnit ?? this.saleUnitsPerPurchaseUnit,
     purchasePrice: purchasePrice ?? this.purchasePrice,
     salePrice: salePrice ?? this.salePrice,
     costPrice: costPrice ?? this.costPrice,
@@ -2417,6 +2506,12 @@ class Product extends DataClass implements Insertable<Product> {
       description: data.description.present
           ? data.description.value
           : this.description,
+      purchaseUnitId: data.purchaseUnitId.present
+          ? data.purchaseUnitId.value
+          : this.purchaseUnitId,
+      saleUnitsPerPurchaseUnit: data.saleUnitsPerPurchaseUnit.present
+          ? data.saleUnitsPerPurchaseUnit.value
+          : this.saleUnitsPerPurchaseUnit,
       purchasePrice: data.purchasePrice.present
           ? data.purchasePrice.value
           : this.purchasePrice,
@@ -2446,6 +2541,8 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('barcode: $barcode, ')
           ..write('name: $name, ')
           ..write('description: $description, ')
+          ..write('purchaseUnitId: $purchaseUnitId, ')
+          ..write('saleUnitsPerPurchaseUnit: $saleUnitsPerPurchaseUnit, ')
           ..write('purchasePrice: $purchasePrice, ')
           ..write('salePrice: $salePrice, ')
           ..write('costPrice: $costPrice, ')
@@ -2461,7 +2558,7 @@ class Product extends DataClass implements Insertable<Product> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     storeId,
     categoryId,
@@ -2471,6 +2568,8 @@ class Product extends DataClass implements Insertable<Product> {
     barcode,
     name,
     description,
+    purchaseUnitId,
+    saleUnitsPerPurchaseUnit,
     purchasePrice,
     salePrice,
     costPrice,
@@ -2481,7 +2580,7 @@ class Product extends DataClass implements Insertable<Product> {
     isFavorite,
     createdAt,
     updatedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2495,6 +2594,8 @@ class Product extends DataClass implements Insertable<Product> {
           other.barcode == this.barcode &&
           other.name == this.name &&
           other.description == this.description &&
+          other.purchaseUnitId == this.purchaseUnitId &&
+          other.saleUnitsPerPurchaseUnit == this.saleUnitsPerPurchaseUnit &&
           other.purchasePrice == this.purchasePrice &&
           other.salePrice == this.salePrice &&
           other.costPrice == this.costPrice &&
@@ -2517,6 +2618,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<String?> barcode;
   final Value<String> name;
   final Value<String?> description;
+  final Value<int?> purchaseUnitId;
+  final Value<double> saleUnitsPerPurchaseUnit;
   final Value<int> purchasePrice;
   final Value<int> salePrice;
   final Value<int> costPrice;
@@ -2537,6 +2640,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.barcode = const Value.absent(),
     this.name = const Value.absent(),
     this.description = const Value.absent(),
+    this.purchaseUnitId = const Value.absent(),
+    this.saleUnitsPerPurchaseUnit = const Value.absent(),
     this.purchasePrice = const Value.absent(),
     this.salePrice = const Value.absent(),
     this.costPrice = const Value.absent(),
@@ -2558,6 +2663,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.barcode = const Value.absent(),
     required String name,
     this.description = const Value.absent(),
+    this.purchaseUnitId = const Value.absent(),
+    this.saleUnitsPerPurchaseUnit = const Value.absent(),
     this.purchasePrice = const Value.absent(),
     this.salePrice = const Value.absent(),
     this.costPrice = const Value.absent(),
@@ -2581,6 +2688,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<String>? barcode,
     Expression<String>? name,
     Expression<String>? description,
+    Expression<int>? purchaseUnitId,
+    Expression<double>? saleUnitsPerPurchaseUnit,
     Expression<int>? purchasePrice,
     Expression<int>? salePrice,
     Expression<int>? costPrice,
@@ -2602,6 +2711,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (barcode != null) 'barcode': barcode,
       if (name != null) 'name': name,
       if (description != null) 'description': description,
+      if (purchaseUnitId != null) 'purchase_unit_id': purchaseUnitId,
+      if (saleUnitsPerPurchaseUnit != null)
+        'sale_units_per_purchase_unit': saleUnitsPerPurchaseUnit,
       if (purchasePrice != null) 'purchase_price': purchasePrice,
       if (salePrice != null) 'sale_price': salePrice,
       if (costPrice != null) 'cost_price': costPrice,
@@ -2625,6 +2737,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Value<String?>? barcode,
     Value<String>? name,
     Value<String?>? description,
+    Value<int?>? purchaseUnitId,
+    Value<double>? saleUnitsPerPurchaseUnit,
     Value<int>? purchasePrice,
     Value<int>? salePrice,
     Value<int>? costPrice,
@@ -2646,6 +2760,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       barcode: barcode ?? this.barcode,
       name: name ?? this.name,
       description: description ?? this.description,
+      purchaseUnitId: purchaseUnitId ?? this.purchaseUnitId,
+      saleUnitsPerPurchaseUnit:
+          saleUnitsPerPurchaseUnit ?? this.saleUnitsPerPurchaseUnit,
       purchasePrice: purchasePrice ?? this.purchasePrice,
       salePrice: salePrice ?? this.salePrice,
       costPrice: costPrice ?? this.costPrice,
@@ -2688,6 +2805,14 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     }
     if (description.present) {
       map['description'] = Variable<String>(description.value);
+    }
+    if (purchaseUnitId.present) {
+      map['purchase_unit_id'] = Variable<int>(purchaseUnitId.value);
+    }
+    if (saleUnitsPerPurchaseUnit.present) {
+      map['sale_units_per_purchase_unit'] = Variable<double>(
+        saleUnitsPerPurchaseUnit.value,
+      );
     }
     if (purchasePrice.present) {
       map['purchase_price'] = Variable<int>(purchasePrice.value);
@@ -2734,6 +2859,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('barcode: $barcode, ')
           ..write('name: $name, ')
           ..write('description: $description, ')
+          ..write('purchaseUnitId: $purchaseUnitId, ')
+          ..write('saleUnitsPerPurchaseUnit: $saleUnitsPerPurchaseUnit, ')
           ..write('purchasePrice: $purchasePrice, ')
           ..write('salePrice: $salePrice, ')
           ..write('costPrice: $costPrice, ')
@@ -15406,25 +15533,6 @@ final class $$UnitsTableReferences
     extends BaseReferences<_$AppDatabase, $UnitsTable, Unit> {
   $$UnitsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static MultiTypedResultKey<$ProductsTable, List<Product>> _productsRefsTable(
-    _$AppDatabase db,
-  ) => MultiTypedResultKey.fromTable(
-    db.products,
-    aliasName: 'units__id__products__base_unit_id',
-  );
-
-  $$ProductsTableProcessedTableManager get productsRefs {
-    final manager = $$ProductsTableTableManager(
-      $_db,
-      $_db.products,
-    ).filter((f) => f.baseUnitId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_productsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
   static MultiTypedResultKey<
     $ProductUnitConversionsTable,
     List<ProductUnitConversion>
@@ -15550,31 +15658,6 @@ class $$UnitsTableFilterComposer extends Composer<_$AppDatabase, $UnitsTable> {
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
-
-  Expression<bool> productsRefs(
-    Expression<bool> Function($$ProductsTableFilterComposer f) f,
-  ) {
-    final $$ProductsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.products,
-      getReferencedColumn: (t) => t.baseUnitId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProductsTableFilterComposer(
-            $db: $db,
-            $table: $db.products,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 
   Expression<bool> productUnitConversionsRefs(
     Expression<bool> Function($$ProductUnitConversionsTableFilterComposer f) f,
@@ -15753,31 +15836,6 @@ class $$UnitsTableAnnotationComposer
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
-  Expression<T> productsRefs<T extends Object>(
-    Expression<T> Function($$ProductsTableAnnotationComposer a) f,
-  ) {
-    final $$ProductsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.products,
-      getReferencedColumn: (t) => t.baseUnitId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProductsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.products,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
   Expression<T> productUnitConversionsRefs<T extends Object>(
     Expression<T> Function($$ProductUnitConversionsTableAnnotationComposer a) f,
   ) {
@@ -15895,7 +15953,6 @@ class $$UnitsTableTableManager
           (Unit, $$UnitsTableReferences),
           Unit,
           PrefetchHooks Function({
-            bool productsRefs,
             bool productUnitConversionsRefs,
             bool inventoryMovementsRefs,
             bool purchaseItemsRefs,
@@ -15957,7 +16014,6 @@ class $$UnitsTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
-                productsRefs = false,
                 productUnitConversionsRefs = false,
                 inventoryMovementsRefs = false,
                 purchaseItemsRefs = false,
@@ -15966,7 +16022,6 @@ class $$UnitsTableTableManager
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
-                    if (productsRefs) db.products,
                     if (productUnitConversionsRefs) db.productUnitConversions,
                     if (inventoryMovementsRefs) db.inventoryMovements,
                     if (purchaseItemsRefs) db.purchaseItems,
@@ -15975,23 +16030,6 @@ class $$UnitsTableTableManager
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
                     return [
-                      if (productsRefs)
-                        await $_getPrefetchedData<Unit, $UnitsTable, Product>(
-                          currentTable: table,
-                          referencedTable: $$UnitsTableReferences
-                              ._productsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$UnitsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).productsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.baseUnitId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
                       if (productUnitConversionsRefs)
                         await $_getPrefetchedData<
                           Unit,
@@ -16093,7 +16131,6 @@ typedef $$UnitsTableProcessedTableManager =
       (Unit, $$UnitsTableReferences),
       Unit,
       PrefetchHooks Function({
-        bool productsRefs,
         bool productUnitConversionsRefs,
         bool inventoryMovementsRefs,
         bool purchaseItemsRefs,
@@ -16111,6 +16148,8 @@ typedef $$ProductsTableCreateCompanionBuilder =
       Value<String?> barcode,
       required String name,
       Value<String?> description,
+      Value<int?> purchaseUnitId,
+      Value<double> saleUnitsPerPurchaseUnit,
       Value<int> purchasePrice,
       Value<int> salePrice,
       Value<int> costPrice,
@@ -16133,6 +16172,8 @@ typedef $$ProductsTableUpdateCompanionBuilder =
       Value<String?> barcode,
       Value<String> name,
       Value<String?> description,
+      Value<int?> purchaseUnitId,
+      Value<double> saleUnitsPerPurchaseUnit,
       Value<int> purchasePrice,
       Value<int> salePrice,
       Value<int> costPrice,
@@ -16211,6 +16252,23 @@ final class $$ProductsTableReferences
       $_db.units,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_baseUnitIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $UnitsTable _purchaseUnitIdTable(_$AppDatabase db) =>
+      db.units.createAlias('products__purchase_unit_id__units__id');
+
+  $$UnitsTableProcessedTableManager? get purchaseUnitId {
+    final $_column = $_itemColumn<int>('purchase_unit_id');
+    if ($_column == null) return null;
+    final manager = $$UnitsTableTableManager(
+      $_db,
+      $_db.units,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_purchaseUnitIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -16352,6 +16410,11 @@ class $$ProductsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<double> get saleUnitsPerPurchaseUnit => $composableBuilder(
+    column: $table.saleUnitsPerPurchaseUnit,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get purchasePrice => $composableBuilder(
     column: $table.purchasePrice,
     builder: (column) => ColumnFilters(column),
@@ -16475,6 +16538,29 @@ class $$ProductsTableFilterComposer
     final $$UnitsTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.baseUnitId,
+      referencedTable: $db.units,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UnitsTableFilterComposer(
+            $db: $db,
+            $table: $db.units,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$UnitsTableFilterComposer get purchaseUnitId {
+    final $$UnitsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.purchaseUnitId,
       referencedTable: $db.units,
       getReferencedColumn: (t) => t.id,
       builder:
@@ -16655,6 +16741,11 @@ class $$ProductsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get saleUnitsPerPurchaseUnit => $composableBuilder(
+    column: $table.saleUnitsPerPurchaseUnit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get purchasePrice => $composableBuilder(
     column: $table.purchasePrice,
     builder: (column) => ColumnOrderings(column),
@@ -16796,6 +16887,29 @@ class $$ProductsTableOrderingComposer
     );
     return composer;
   }
+
+  $$UnitsTableOrderingComposer get purchaseUnitId {
+    final $$UnitsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.purchaseUnitId,
+      referencedTable: $db.units,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UnitsTableOrderingComposer(
+            $db: $db,
+            $table: $db.units,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$ProductsTableAnnotationComposer
@@ -16821,6 +16935,11 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<String> get description => $composableBuilder(
     column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get saleUnitsPerPurchaseUnit => $composableBuilder(
+    column: $table.saleUnitsPerPurchaseUnit,
     builder: (column) => column,
   );
 
@@ -16931,6 +17050,29 @@ class $$ProductsTableAnnotationComposer
     final $$UnitsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.baseUnitId,
+      referencedTable: $db.units,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UnitsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.units,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$UnitsTableAnnotationComposer get purchaseUnitId {
+    final $$UnitsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.purchaseUnitId,
       referencedTable: $db.units,
       getReferencedColumn: (t) => t.id,
       builder:
@@ -17096,6 +17238,7 @@ class $$ProductsTableTableManager
             bool categoryId,
             bool brandId,
             bool baseUnitId,
+            bool purchaseUnitId,
             bool productUnitConversionsRefs,
             bool inventoryRefs,
             bool inventoryMovementsRefs,
@@ -17125,6 +17268,8 @@ class $$ProductsTableTableManager
                 Value<String?> barcode = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> description = const Value.absent(),
+                Value<int?> purchaseUnitId = const Value.absent(),
+                Value<double> saleUnitsPerPurchaseUnit = const Value.absent(),
                 Value<int> purchasePrice = const Value.absent(),
                 Value<int> salePrice = const Value.absent(),
                 Value<int> costPrice = const Value.absent(),
@@ -17145,6 +17290,8 @@ class $$ProductsTableTableManager
                 barcode: barcode,
                 name: name,
                 description: description,
+                purchaseUnitId: purchaseUnitId,
+                saleUnitsPerPurchaseUnit: saleUnitsPerPurchaseUnit,
                 purchasePrice: purchasePrice,
                 salePrice: salePrice,
                 costPrice: costPrice,
@@ -17167,6 +17314,8 @@ class $$ProductsTableTableManager
                 Value<String?> barcode = const Value.absent(),
                 required String name,
                 Value<String?> description = const Value.absent(),
+                Value<int?> purchaseUnitId = const Value.absent(),
+                Value<double> saleUnitsPerPurchaseUnit = const Value.absent(),
                 Value<int> purchasePrice = const Value.absent(),
                 Value<int> salePrice = const Value.absent(),
                 Value<int> costPrice = const Value.absent(),
@@ -17187,6 +17336,8 @@ class $$ProductsTableTableManager
                 barcode: barcode,
                 name: name,
                 description: description,
+                purchaseUnitId: purchaseUnitId,
+                saleUnitsPerPurchaseUnit: saleUnitsPerPurchaseUnit,
                 purchasePrice: purchasePrice,
                 salePrice: salePrice,
                 costPrice: costPrice,
@@ -17212,6 +17363,7 @@ class $$ProductsTableTableManager
                 categoryId = false,
                 brandId = false,
                 baseUnitId = false,
+                purchaseUnitId = false,
                 productUnitConversionsRefs = false,
                 inventoryRefs = false,
                 inventoryMovementsRefs = false,
@@ -17291,6 +17443,19 @@ class $$ProductsTableTableManager
                                         ._baseUnitIdTable(db),
                                     referencedColumn: $$ProductsTableReferences
                                         ._baseUnitIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (purchaseUnitId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.purchaseUnitId,
+                                    referencedTable: $$ProductsTableReferences
+                                        ._purchaseUnitIdTable(db),
+                                    referencedColumn: $$ProductsTableReferences
+                                        ._purchaseUnitIdTable(db)
                                         .id,
                                   )
                                   as T;
@@ -17430,6 +17595,7 @@ typedef $$ProductsTableProcessedTableManager =
         bool categoryId,
         bool brandId,
         bool baseUnitId,
+        bool purchaseUnitId,
         bool productUnitConversionsRefs,
         bool inventoryRefs,
         bool inventoryMovementsRefs,

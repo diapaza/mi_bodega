@@ -5,7 +5,11 @@ import 'system.dart';
 
 /// Productos del catálogo.
 ///
-/// Los montos (`purchasePrice`, `salePrice`, `costPrice`) están en céntimos.
+/// - `purchasePrice` = céntimos por unidad de compra (paquete, caja, etc.).
+/// - `salePrice` = céntimos por unidad base (unidad de venta principal).
+/// - `costPrice` = costo promedio móvil por unidad base en céntimos.
+/// - `saleUnitsPerPurchaseUnit` = unidades de venta que vienen en 1 unidad de compra.
+///
 /// El stock NO vive aquí: su fuente de verdad es la tabla `inventory`.
 @TableIndex(name: 'idx_products_store', columns: {#storeId})
 @TableIndex(name: 'idx_products_category', columns: {#categoryId})
@@ -31,10 +35,18 @@ class Products extends Table {
 
   TextColumn get description => text().nullable()();
 
-  /// Céntimos.
+  /// Unidad en la que se compra el producto (paquete, caja, etc.).
+  /// NULL = la compra es por la unidad base.
+  IntColumn get purchaseUnitId => integer().nullable().references(Units, #id)();
+
+  /// Cuántas unidades de venta (base) vienen en 1 unidad de compra.
+  /// Ej: 24 tarros por paquete, 6 gaseosas por paquete.
+  RealColumn get saleUnitsPerPurchaseUnit => real().withDefault(const Constant(1))();
+
+  /// Céntimos por unidad de compra (ej: S/57.00 por paquete de 24).
   IntColumn get purchasePrice => integer().withDefault(const Constant(0))();
 
-  /// Céntimos.
+  /// Céntimos por unidad base (venta).
   IntColumn get salePrice => integer().withDefault(const Constant(0))();
 
   /// Costo promedio móvil en céntimos (base unit).

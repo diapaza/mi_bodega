@@ -65,7 +65,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   /// Versión actual del esquema (para comparar con `PRAGMA user_version`).
-  static const currentSchemaVersion = 3;
+  static const currentSchemaVersion = 4;
 
   @override
   int get schemaVersion => currentSchemaVersion;
