@@ -1,0 +1,14 @@
+# Configuración de firma de RELEASE de MiBodega.
+#
+# Copia este archivo a `android/key.properties` y rellena con los datos de tu
+# keystore de release. NUNCA subas `key.properties` ni el archivo `.jks` al
+# repositorio (añade ambos a `.gitignore`).
+#
+# Para generar un keystore de release (una sola vez):
+#   keytool -genkey -v -keystore ~/mibodega-upload.jks -keyalg RSA \
+#     -keysize 2048 -validity 10000 -alias upload
+#
+storeFile=/ruta/a/mibodega-upload.jks
+storePassword=TU_CLAVE
+keyAlias=upload
+keyPassword=TU_CLAVE

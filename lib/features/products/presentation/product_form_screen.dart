@@ -1,0 +1,483 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../../core/di/app_providers.dart';
+import '../../../core/security/permission_guard.dart';
+import '../../../core/money/money.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/mb_button.dart';
+import '../../../shared/widgets/mb_text_field.dart';
+import '../../auth/presentation/session_controller.dart';
+import '../../catalog/presentation/catalog_providers.dart';
+import '../domain/entities/product.dart';
+import 'products_providers.dart';
+import 'widgets/conversions_editor.dart';
+import 'widgets/photo_field.dart';
+import 'widgets/price_recommender.dart';
+
+class ProductFormScreen extends ConsumerStatefulWidget {
+  final int? productId;
+
+  const ProductFormScreen({super.key, this.productId});
+
+  @override
+  ConsumerState<ProductFormScreen> createState() => _ProductFormScreenState();
+}
+
+class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
+  final _name = TextEditingController();
+  final _sku = TextEditingController();
+  final _barcode = TextEditingController();
+  final _description = TextEditingController();
+  final _purchase = TextEditingController(text: '0.00');
+  final _sale = TextEditingController(text: '0.00');
+  final _stockMin = TextEditingController(text: '0');
+  final _stockMax = TextEditingController();
+  final _initialStock = TextEditingController();
+
+  int? _categoryId;
+  int? _brandId;
+  int? _unitId;
+  String? _photoPath;
+  String? _originalPhotoPath;
+  List<ConversionDraft> _conversions = [];
+  bool _loaded = false;
+  bool _saving = false;
+
+  bool get _isEditing => widget.productId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditing) {
+      _load();
+    } else {
+      _loaded = true;
+    }
+  }
+
+  Future<void> _load() async {
+    final id = widget.productId!;
+    final stock = await ref.read(productByIdProvider(id).future);
+    final product = stock?.product;
+    final conversions = (await ref.read(productConversionsProvider(id).future));
+    if (product != null) {
+      _name.text = product.name;
+      _sku.text = product.sku ?? '';
+      _barcode.text = product.barcode ?? '';
+      _description.text = product.description ?? '';
+      _purchase.text = (product.purchasePrice.cents / 100).toStringAsFixed(2);
+      _sale.text = (product.salePrice.cents / 100).toStringAsFixed(2);
+      _stockMin.text = _fmtQty(product.stockMin);
+      _stockMax.text = product.stockMax == null ? '' : _fmtQty(product.stockMax!);
+      _categoryId = product.categoryId;
+      _brandId = product.brandId;
+      _unitId = product.baseUnitId;
+      _photoPath = product.photoPath;
+      _originalPhotoPath = product.photoPath;
+      _conversions = [
+        for (final c in conversions)
+          ConversionDraft(
+            id: c.id,
+            unitId: c.unitId,
+            factor: c.factor,
+            purchasePrice: c.purchasePrice,
+            salePrice: c.salePrice,
+          ),
+      ];
+    }
+    if (mounted) setState(() => _loaded = true);
+  }
+
+  String _fmtQty(double v) =>
+      v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(2);
+
+  @override
+  void dispose() {
+    for (final c in [
+      _name, _sku, _barcode, _description, _purchase, _sale, _stockMin, _stockMax, _initialStock,
+    ]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Money _money(String text) => Money.fromSoles(double.tryParse(text.trim()) ?? 0);
+
+  Future<void> _pickPhoto(ImageSource source) async {
+    final guard =
+        ensureAllowed(ref.read(sessionPermissionsProvider), 'products.edit');
+    if (guard.isErr) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(guard.failure!.message)),
+        );
+      }
+      return;
+    }
+    final photo = ref.read(photoServiceProvider);
+    final path = await photo.pickAndSave(source);
+    if (path != null) {
+      // Reemplazo: eliminar foto anterior si existía.
+      final old = _photoPath;
+      setState(() => _photoPath = path);
+      if (old != null) await photo.deletePhoto(old);
+    }
+  }
+
+  Future<void> _removePhoto() async {
+    final photo = ref.read(photoServiceProvider);
+    final old = _photoPath;
+    setState(() => _photoPath = null);
+    if (old != null) await photo.deletePhoto(old);
+  }
+
+  Future<void> _save() async {
+    final guard = ensureAllowed(
+      ref.read(sessionPermissionsProvider),
+      _isEditing ? 'products.edit' : 'products.create',
+    );
+    if (guard.isErr) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(guard.failure!.message)),
+        );
+      }
+      return;
+    }
+    if (_name.text.trim().isEmpty || _unitId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nombre y unidad son obligatorios.')),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    final repo = ref.read(productRepositoryProvider);
+    final storeId = ref.read(sessionControllerProvider).valueOrNull?.store?.id;
+    if (storeId == null) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sesión no disponible.')),
+        );
+      }
+      return;
+    }
+
+    final draft = ProductDraft(
+      storeId: storeId,
+      categoryId: _categoryId,
+      brandId: _brandId,
+      baseUnitId: _unitId!,
+      sku: _sku.text.trim().isEmpty ? null : _sku.text.trim(),
+      barcode: _barcode.text.trim().isEmpty ? null : _barcode.text.trim(),
+      name: _name.text.trim(),
+      description: _description.text.trim().isEmpty ? null : _description.text.trim(),
+      purchasePrice: _money(_purchase.text),
+      salePrice: _money(_sale.text),
+      stockMin: double.tryParse(_stockMin.text) ?? 0,
+      stockMax: _stockMax.text.trim().isEmpty
+          ? null
+          : double.tryParse(_stockMax.text),
+      photoPath: _photoPath,
+      initialStock: _isEditing ? 0 : (double.tryParse(_initialStock.text) ?? 0),
+    );
+    final conversions = [
+      for (final c in _conversions)
+        ProductUnitConversion(
+            productId: widget.productId ?? 0,
+            unitId: c.unitId,
+            factor: c.factor,
+            purchasePrice: c.purchasePrice,
+            salePrice: c.salePrice,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+    ];
+
+    final result = _isEditing
+        ? await repo.updateProduct(widget.productId!, draft, conversions: conversions)
+        : await repo.createProduct(draft, conversions: conversions);
+
+    if (!mounted) return;
+    if (result.isErr) {
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.failure!.message)),
+      );
+      return;
+    }
+    // Limpiar foto original si fue reemplazada/removida.
+    if (_originalPhotoPath != null && _originalPhotoPath != _photoPath) {
+      await ref.read(photoServiceProvider).deletePhoto(_originalPhotoPath!);
+    }
+    if (mounted) context.pop();
+  }
+
+  Future<void> _delete() async {
+    final guard =
+        ensureAllowed(ref.read(sessionPermissionsProvider), 'products.disable');
+    if (guard.isErr) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(guard.failure!.message)),
+        );
+      }
+      return;
+    }
+    final repo = ref.read(productRepositoryProvider);
+    final canHard = (await repo.canHardDelete(widget.productId!)).orNull ?? false;
+    if (!mounted) return;
+    final message = canHard
+        ? 'Este producto no tiene historial y se eliminará definitivamente.'
+        : 'Este producto tiene historial; se desactivará (soft delete).';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar producto'),
+        content: Text(message),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final result = await repo.deleteProduct(widget.productId!);
+    if (!mounted) return;
+    if (result.isOk) {
+      if (result.orNull == DeleteProductResult.hardDeleted && _photoPath != null) {
+        await ref.read(photoServiceProvider).deletePhoto(_photoPath!);
+      }
+      if (mounted) context.pop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.failure!.message)),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    print('[ProductForm] build() isEditing=$_isEditing');
+    final session = ref.watch(sessionControllerProvider).valueOrNull;
+    final canEdit = session?.can('products.edit') ?? false;
+    final canDisable = session?.can('products.disable') ?? false;
+
+    final categories = ref.watch(categoriesProvider).valueOrNull ?? const [];
+    final brands = ref.watch(brandsProvider).valueOrNull ?? const [];
+    final units = ref.watch(unitsProvider).valueOrNull ?? const [];
+    print('[ProductForm] units=${units.length} _unitId=$_unitId');
+
+    if (!_loaded) {
+      return Scaffold(appBar: AppBar(), body: const Center(child: CircularProgressIndicator()));
+    }
+
+    final salePrice = _money(_sale.text);
+    final purchasePrice = _money(_purchase.text);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_isEditing ? 'Editar producto' : 'Nuevo producto'),
+        actions: [
+          if (_isEditing && canDisable)
+            IconButton(
+              tooltip: 'Eliminar / desactivar',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _delete,
+            ),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PhotoField(
+                photoPath: _photoPath,
+                onPick: _pickPhoto,
+                onRemove: _removePhoto,
+              ),
+              const SizedBox(height: 16),
+              // --- Información básica ---
+              _SectionHeader(title: 'Información básica'),
+              const SizedBox(height: 8),
+              MbTextField(
+                controller: _name,
+                label: 'Nombre *',
+                enabled: canEdit,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: MbTextField(controller: _sku, label: 'Código (SKU)'),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: MbTextField(controller: _barcode, label: 'Código de barras'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              MbTextField(
+                controller: _description,
+                label: 'Descripción',
+                maxLines: 2,
+              ),
+              const SizedBox(height: 20),
+              // --- Clasificación ---
+              _SectionHeader(title: 'Clasificación'),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<int?>(
+                      initialValue: _categoryId,
+                      decoration: const InputDecoration(labelText: 'Categoría'),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('Sin categoría')),
+                        for (final c in categories)
+                          DropdownMenuItem(value: c.id, child: Text(c.name)),
+                      ],
+                      onChanged: (v) => setState(() => _categoryId = v),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DropdownButtonFormField<int?>(
+                      initialValue: _brandId,
+                      decoration: const InputDecoration(labelText: 'Marca'),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('Sin marca')),
+                        for (final b in brands)
+                          DropdownMenuItem(value: b.id, child: Text(b.name)),
+                      ],
+                      onChanged: (v) => setState(() => _brandId = v),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<int?>(
+                initialValue: _unitId,
+                decoration: const InputDecoration(labelText: 'Unidad base *'),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('Seleccionar unidad')),
+                  for (final u in units)
+                    DropdownMenuItem(value: u.id, child: Text('${u.name} (${u.symbol})')),
+                ],
+                onChanged: (v) {
+                  print('[ProductForm] Unidad changed: $v');
+                  setState(() => _unitId = v);
+                },
+              ),
+              const SizedBox(height: 20),
+              // --- Precios ---
+              _SectionHeader(title: 'Precios'),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: MbTextField(
+                      controller: _purchase,
+                      label: 'Costo (S/)',
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: MbTextField(
+                      controller: _sale,
+                      label: 'Precio de venta (S/)',
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              PriceRecommender(
+                initialCost: purchasePrice,
+                initialSalePrice: salePrice,
+                onApply: (price) => _sale.text = (price.cents / 100).toStringAsFixed(2),
+              ),
+              const SizedBox(height: 20),
+              // --- Stock ---
+              _SectionHeader(title: 'Stock'),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: MbTextField(
+                      controller: _stockMin,
+                      label: 'Stock mínimo',
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: MbTextField(
+                      controller: _stockMax,
+                      label: 'Stock máximo (opcional)',
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              if (!_isEditing) ...[
+                const SizedBox(height: 12),
+                MbTextField(
+                  controller: _initialStock,
+                  label: 'Stock inicial',
+                  keyboardType: TextInputType.number,
+                ),
+              ],
+              const SizedBox(height: 20),
+              // --- Conversiones ---
+              _SectionHeader(title: 'Conversiones de unidad'),
+              const SizedBox(height: 8),
+              ConversionsEditor(
+                units: units,
+                initial: _conversions,
+                unitSalePrice: salePrice,
+                onChanged: (drafts) => _conversions = drafts,
+              ),
+              const SizedBox(height: 24),
+              MbButton(
+                label: _isEditing ? 'Guardar cambios' : 'Crear producto',
+                icon: Icons.check,
+                loading: _saving,
+                onPressed: _saving ? null : _save,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = context.colors;
+    return Text(
+      title,
+      style: theme.textTheme.titleSmall?.copyWith(
+        color: colors.primary,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+}

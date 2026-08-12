@@ -1,0 +1,286 @@
+import 'package:collection/collection.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../core/money/money.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/mb_badge.dart';
+import '../../../shared/widgets/mb_empty_state.dart';
+import '../../auth/presentation/session_controller.dart';
+import '../../catalog/presentation/catalog_providers.dart';
+import '../../products/domain/entities/product.dart';
+import 'inventory_providers.dart';
+
+class InventoryScreen extends ConsumerWidget {
+  const InventoryScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colors = context.colors;
+    final session = ref.watch(sessionControllerProvider).valueOrNull;
+    final canRestock = session?.can('purchases.create') ?? false;
+    final canAdjust = session?.can('inventory.adjust') ?? false;
+
+    final filter = ref.watch(inventoryFilterProvider);
+    final searchText = ref.watch(inventorySearchProvider);
+    final productsAsync = ref.watch(inventoryProductsProvider);
+    final valueAsync = ref.watch(inventoryValueProvider);
+    final low = ref.watch(lowStockProvider).valueOrNull ?? const [];
+    final out = ref.watch(outOfStockProvider).valueOrNull ?? const [];
+    final excess = ref.watch(excessStockProvider).valueOrNull ?? const [];
+    final units = ref.watch(unitsProvider).valueOrNull ?? const [];
+
+    String unitSymbol(int? id) =>
+        units.where((u) => u.id == id).map((u) => u.symbol).firstOrNull ?? 'ud';
+
+    final value = Money((valueAsync.valueOrNull ?? 0).round());
+
+    List<ProductStock> filtered(List<ProductStock> all) {
+      List<ProductStock> result = switch (filter) {
+        InventoryFilter.low => low,
+        InventoryFilter.out => out,
+        InventoryFilter.excess => excess,
+        InventoryFilter.all => all,
+      };
+      if (searchText.isNotEmpty) {
+        final query = searchText.toLowerCase();
+        result = result.where((p) =>
+          p.product.name.toLowerCase().contains(query) ||
+          (p.product.sku?.toLowerCase().contains(query) ?? false) ||
+          (p.product.barcode?.toLowerCase().contains(query) ?? false)
+        ).toList();
+      }
+      return result;
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Inventario'),
+        actions: [
+          IconButton(
+            tooltip: 'Historial de movimientos',
+            icon: const Icon(Icons.receipt_long_outlined),
+            onPressed: () => context.push('/inventory/movements'),
+          ),
+        ],
+      ),
+      floatingActionButton: canRestock
+          ? FloatingActionButton.extended(
+              onPressed: () => context.push('/purchases/new'),
+              icon: const Icon(Icons.add_shopping_cart),
+              label: const Text('Reabastecer'),
+            )
+          : null,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    Icon(Icons.payments_outlined, color: colors.primary, size: 34),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Valor del inventario',
+                              style: theme.textTheme.bodySmall),
+                          Text(
+                            value.format(),
+                            style: theme.textTheme.headlineMedium
+                                ?.copyWith(color: colors.primary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        _CountBadge(label: 'Bajo', count: low.length, tone: MbBadgeTone.warning),
+                        const SizedBox(height: 4),
+                        _CountBadge(label: 'Agotados', count: out.length, tone: MbBadgeTone.error),
+                        const SizedBox(height: 4),
+                        _CountBadge(label: 'Exceso', count: excess.length, tone: MbBadgeTone.info),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+            child: TextField(
+              onChanged: (v) => ref.read(inventorySearchProvider.notifier).state = v.trim(),
+              decoration: InputDecoration(
+                hintText: 'Buscar por nombre, SKU o código',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: searchText.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => ref.read(inventorySearchProvider.notifier).state = '',
+                      )
+                    : null,
+              ),
+            ),
+          ),
+          SizedBox(
+            height: 44,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                for (final f in InventoryFilter.values)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(switch (f) {
+                        InventoryFilter.all => 'Todos',
+                        InventoryFilter.low => 'Stock bajo',
+                        InventoryFilter.out => 'Agotados',
+                        InventoryFilter.excess => 'Exceso',
+                      }),
+                      selected: filter == f,
+                      onSelected: (_) => ref
+                          .read(inventoryFilterProvider.notifier)
+                          .state = f,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(inventoryProductsProvider);
+                ref.invalidate(inventoryValueProvider);
+                ref.invalidate(lowStockProvider);
+                ref.invalidate(outOfStockProvider);
+                ref.invalidate(excessStockProvider);
+              },
+              child: productsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Error: $e')),
+              data: (all) {
+                final items = filtered(all);
+                if (items.isEmpty) {
+                  return MbEmptyState(
+                    icon: Icons.inventory_2_outlined,
+                    title: filter == InventoryFilter.all
+                        ? 'Sin productos en inventario'
+                        : 'Sin productos en esta categoría',
+                    message: 'Ajusta el filtro o registra una compra.',
+                  );
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: items.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (context, i) {
+                    final item = items[i];
+                    final p = item.product;
+                    final lineValue = Money((item.stock * p.costPrice.cents).round());
+                    return Card(
+                      child: ListTile(
+                        onTap: () =>
+                            context.push('/inventory/${p.id}/movements'),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        title: Text(
+                          p.name,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                        subtitle: Text(
+                          'Costo ${Money(p.costPrice.cents).format()} · '
+                          'Valor ${lineValue.format()}',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${_fmtQty(item.stock)} ${unitSymbol(p.baseUnitId)}',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: colors.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'min ${_fmtQty(p.stockMin)}'
+                              '${p.stockMax != null ? ' · max ${_fmtQty(p.stockMax!)}' : ''}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            if (canAdjust)
+                              PopupMenuButton<String>(
+                                icon: Icon(Icons.more_vert,
+                                    color: colors.onSurfaceVariant, size: 20),
+                                itemBuilder: (_) => const [
+                                  PopupMenuItem(
+                                      value: 'movements',
+                                      child: Text('Historial')),
+                                  PopupMenuItem(
+                                      value: 'adjust', child: Text('Ajustar')),
+                                ],
+                                onSelected: (v) {
+                                  if (v == 'movements') {
+                                    context.push(
+                                        '/inventory/${p.id}/movements');
+                                  }
+                                  if (v == 'adjust') {
+                                    context.push(
+                                        '/inventory/${p.id}/adjust');
+                                  }
+                                },
+                              ),
+                          ],
+                        ),
+                        isThreeLine: true,
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _fmtQty(double v) =>
+      v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(2);
+}
+
+class _CountBadge extends StatelessWidget {
+  final String label;
+  final int count;
+  final MbBadgeTone tone;
+
+  const _CountBadge({
+    required this.label,
+    required this.count,
+    required this.tone,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(width: 4),
+        MbBadge('$count', tone: tone),
+      ],
+    );
+  }
+}

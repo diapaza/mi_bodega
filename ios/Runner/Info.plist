@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>MiBodega usa la cámara para tomar fotos de los productos de tu tienda.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>MiBodega accede a tu galería para seleccionar fotos de los productos.</string>
 </dict>
 </plist>
