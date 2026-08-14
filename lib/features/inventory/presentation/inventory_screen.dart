@@ -67,10 +67,24 @@ class InventoryScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: canRestock
-          ? FloatingActionButton.extended(
-              onPressed: () => context.push('/purchases/new'),
-              icon: const Icon(Icons.add_shopping_cart),
-              label: const Text('Reabastecer'),
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                FloatingActionButton.extended(
+                  heroTag: 'shopping-list-fab',
+                  onPressed: () => context.push('/shopping-list'),
+                  icon: const Icon(Icons.shopping_bag_outlined),
+                  label: const Text('Lista de compras'),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton.extended(
+                  heroTag: 'inventory-fab',
+                  onPressed: () => context.push('/purchases/new'),
+                  icon: const Icon(Icons.add_shopping_cart),
+                  label: const Text('Reabastecer'),
+                ),
+              ],
             )
           : null,
       body: Column(

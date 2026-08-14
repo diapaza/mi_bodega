@@ -12,7 +12,9 @@ import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../inventory/presentation/inventory_providers.dart';
 import '../../products/domain/entities/product.dart';
+import '../../products/presentation/widgets/product_image.dart';
 import '../domain/entities/purchase.dart';
+import '../domain/repositories/shopping_list_repository.dart';
 import 'purchases_providers.dart';
 
 class _RestockDraft {
@@ -45,6 +47,7 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
   final Map<int, _RestockDraft> _selected = {};
   int? _supplierId;
   bool _saving = false;
+  bool _initialized = false;
 
   @override
   void dispose() {
@@ -58,10 +61,17 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
     final stock = item.stock;
     final min = item.product.stockMin;
     final max = item.product.stockMax;
-    final target = max != null
-        ? max - stock
-        : (min * 2) - stock;
-    return target < 1 ? 1 : target;
+    final unitsPerPkg = item.product.saleUnitsPerPurchaseUnit;
+
+    final targetSaleUnits = max != null ? max - stock : (min * 2) - stock;
+
+    if (unitsPerPkg > 1) {
+      final targetPurchaseUnits = targetSaleUnits / unitsPerPkg;
+      final rounded = targetPurchaseUnits.ceilToDouble();
+      return rounded < 1 ? 1 : rounded;
+    }
+
+    return targetSaleUnits < 1 ? 1 : targetSaleUnits;
   }
 
   Future<void> _toggle(ProductStock item) async {
@@ -71,8 +81,36 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
       setState(() {});
       return;
     }
+
+    // Alerta de sobrestock.
     final p = item.product;
-    final hasPurchaseUnit = p.purchaseUnitId != null && p.saleUnitsPerPurchaseUnit > 1;
+    if (p.stockMax != null && item.stock >= p.stockMax!) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('¡Atención!'),
+          content: Text(
+            'Este producto ya tiene stock (${_fmtQty(item.stock)}) igual o mayor '
+            'al máximo (${_fmtQty(p.stockMax!)}). Al agregar más stock habrá '
+            'sobrestock. ¿Desea agregar de todos modos?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Agregar de todos modos'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+
+    final hasPurchaseUnit =
+        p.purchaseUnitId != null && p.saleUnitsPerPurchaseUnit > 1;
     final lastCost = hasPurchaseUnit
         ? p.purchasePrice.cents
         : (await ref.read(lastPurchaseCostProvider(id).future)) ??
@@ -80,6 +118,55 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
     setState(() {
       _selected[id] = _RestockDraft(
         quantity: _suggestion(item),
+        costCents: lastCost,
+      );
+    });
+  }
+
+  Future<void> _toggleWithQuantity(
+      ProductStock item, double? listQuantity) async {
+    final id = item.product.id!;
+    if (_selected.containsKey(id)) {
+      _selected.remove(id)?.dispose();
+      setState(() {});
+      return;
+    }
+
+    final p = item.product;
+    if (p.stockMax != null && item.stock >= p.stockMax!) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('¡Atención!'),
+          content: Text(
+            'Este producto ya tiene stock (${_fmtQty(item.stock)}) igual o mayor '
+            'al máximo (${_fmtQty(p.stockMax!)}). Al agregar más stock habrá '
+            'sobrestock. ¿Desea agregar de todos modos?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Agregar de todos modos'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+
+    final hasPurchaseUnit =
+        p.purchaseUnitId != null && p.saleUnitsPerPurchaseUnit > 1;
+    final lastCost = hasPurchaseUnit
+        ? p.purchasePrice.cents
+        : (await ref.read(lastPurchaseCostProvider(id).future)) ??
+            p.costPrice.cents;
+    setState(() {
+      _selected[id] = _RestockDraft(
+        quantity: listQuantity ?? _suggestion(item),
         costCents: lastCost,
       );
     });
@@ -93,7 +180,8 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
         title: const Text('Nuevo proveedor'),
         content: MbTextField(controller: controller, label: 'Nombre'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text),
             child: const Text('Guardar'),
@@ -102,19 +190,21 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
       ),
     );
     if (name == null || name.trim().isEmpty) return;
-    final storeId = ref.read(sessionControllerProvider).valueOrNull?.store?.id;
+    final storeId =
+        ref.read(sessionControllerProvider).valueOrNull?.store?.id;
     if (storeId == null) return;
     final result = await ref.read(supplierRepositoryProvider).createSupplier(
-      Supplier(
-        storeId: storeId,
-        name: name.trim(),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ),
-    );
+          Supplier(
+            storeId: storeId,
+            name: name.trim(),
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        );
     if (!mounted) return;
     if (result.isErr) {
-      showMbSnack(context, result.failure!.message, variant: MbSnackVariant.error);
+      showMbSnack(context, result.failure!.message,
+          variant: MbSnackVariant.error);
     }
   }
 
@@ -123,7 +213,8 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
         ensureAllowed(ref.read(sessionPermissionsProvider), 'purchases.create');
     if (guard.isErr) {
       if (mounted) {
-        showMbSnack(context, guard.failure!.message, variant: MbSnackVariant.error);
+        showMbSnack(context, guard.failure!.message,
+            variant: MbSnackVariant.error);
       }
       return;
     }
@@ -160,9 +251,17 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
     if (result.isErr) {
-      showMbSnack(context, result.failure!.message, variant: MbSnackVariant.error);
+      showMbSnack(context, result.failure!.message,
+          variant: MbSnackVariant.error);
       return;
     }
+
+    // Eliminar productos reabastecidos de la lista de compras.
+    final shoppingRepo = ref.read(shoppingListRepositoryProvider);
+    for (final entry in _selected.entries) {
+      await shoppingRepo.removeByProductId(storeId, entry.key);
+    }
+
     for (final d in _selected.values) {
       d.dispose();
     }
@@ -175,21 +274,33 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('[Restock] build()');
     final theme = Theme.of(context);
+    final colors = Theme.of(context).colorScheme;
     final session = ref.watch(sessionControllerProvider).valueOrNull;
-    final restockProducts =
-        ref.watch(lowAndOutOfStockProvider).valueOrNull ?? const <ProductStock>[];
-    final suppliers = ref.watch(suppliersProvider).valueOrNull ?? const <Supplier>[];
+    final productsAsync = ref.watch(inventoryProductsProvider);
+    final allProducts = productsAsync.valueOrNull ?? const <ProductStock>[];
+    final suppliers =
+        ref.watch(suppliersProvider).valueOrNull ?? const <Supplier>[];
     final canManageSuppliers = session?.can('suppliers.manage') ?? false;
+    final shoppingList =
+        ref.watch(shoppingListProvider).valueOrNull ?? const [];
 
-    final products = restockProducts.toList()
-      ..sort((a, b) => a.product.name.compareTo(b.product.name));
+    // Auto-importar productos de la lista de compras al abrir.
+    if (!_initialized && allProducts.isNotEmpty) {
+      _initialized = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _autoImportFromList(shoppingList, allProducts);
+      });
+    }
+
+    // Ordenar por stock ascendente (menor a mayor).
+    final products = allProducts.toList()
+      ..sort((a, b) => a.stock.compareTo(b.stock));
 
     final total = Money(_selected.entries.fold<int>(0, (sum, entry) {
       final qty = double.tryParse(entry.value.quantity.text) ?? 0;
-      final cost = (double.tryParse(entry.value.cost.text) ?? 0) * 100;
-      return sum + (qty * cost).round();
+      final cost = double.tryParse(entry.value.cost.text) ?? 0;
+      return sum + (qty * cost * 100).round();
     }));
 
     return Scaffold(
@@ -205,10 +316,12 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
                   style: theme.textTheme.titleSmall,
                 ),
               ),
-              MbButton(
-                label: 'Registrar compra',
-                loading: _saving,
-                onPressed: _saving || _selected.isEmpty ? null : _confirm,
+              Expanded(
+                child: MbButton(
+                  label: 'Registrar compra',
+                  loading: _saving,
+                  onPressed: _saving || _selected.isEmpty ? null : _confirm,
+                ),
               ),
             ],
           ),
@@ -228,7 +341,8 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
                       isDense: true,
                     ),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Sin proveedor')),
+                      const DropdownMenuItem(
+                          value: null, child: Text('Sin proveedor')),
                       for (final s in suppliers)
                         DropdownMenuItem(value: s.id, child: Text(s.name)),
                     ],
@@ -247,91 +361,184 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
             ),
           ),
           Expanded(
-            child: products.isEmpty
-                ? const MbEmptyState(
-                    icon: Icons.check_circle_outline,
-                    title: 'Todo en stock',
-                    message: 'No hay productos con stock bajo o agotados.',
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    itemCount: products.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (context, i) {
-                      final item = products[i];
-                      final draft = _selected[item.product.id];
-                      final selected = draft != null;
-                      return Card(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => _toggle(item),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    Checkbox(
-                                      value: selected,
-                                      onChanged: (_) => _toggle(item),
-                                    ),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(item.product.name,
-                                              style: theme.textTheme.titleSmall),
-                                          Text(
-                                            'Stock ${_fmtQty(item.stock)}'
-                                            '${item.outOfStock ? ' · AGOTADO' : ''}'
-                                            ' · mín ${_fmtQty(item.product.stockMin)}',
-                                            style: theme.textTheme.bodySmall?.copyWith(
-                                              color: item.outOfStock
-                                                  ? theme.colorScheme.error
-                                                  : theme.colorScheme.onSurfaceVariant,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (selected) ...[
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: MbTextField(
-                                          controller: draft.quantity,
-                                          label: 'Cantidad',
-                                          keyboardType: TextInputType.number,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: MbTextField(
-                                          controller: draft.cost,
-                                          label: 'Costo por ud (S/)',
-                                          keyboardType: const TextInputType
-                                              .numberWithOptions(decimal: true),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ],
-                            ),
+            child: productsAsync.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : productsAsync.hasError
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.error_outline,
+                                  size: 48, color: colors.error),
+                              const SizedBox(height: 16),
+                              Text('Error al cargar productos',
+                                  style: theme.textTheme.titleMedium),
+                              const SizedBox(height: 16),
+                              MbButton(
+                                label: 'Reintentar',
+                                variant: MbButtonVariant.outlined,
+                                onPressed: () =>
+                                    ref.invalidate(inventoryProductsProvider),
+                              ),
+                            ],
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      )
+                    : products.isEmpty
+                        ? const MbEmptyState(
+                            icon: Icons.check_circle_outline,
+                            title: 'Todo en stock',
+                            message:
+                                'No hay productos con stock bajo o agotados.',
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            itemCount: products.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (context, i) {
+                              final item = products[i];
+                              final draft = _selected[item.product.id];
+                              final selected = draft != null;
+                              final p = item.product;
+                              final status =
+                                  _stockStatus(p, item.stock, colors);
+
+                              return Card(
+                                color: selected
+                                    ? status.color.withValues(alpha: 0.08)
+                                    : null,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: () => _toggle(item),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Checkbox(
+                                              value: selected,
+                                              onChanged: (_) => _toggle(item),
+                                            ),
+                                            ProductImage(
+                                              photoPath: p.photoPath,
+                                              width: 40,
+                                              height: 40,
+                                              borderRadius: 6,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(p.name,
+                                                      style: theme
+                                                          .textTheme.titleSmall),
+                                                  Row(
+                                                    children: [
+                                                      Container(
+                                                        width: 8,
+                                                        height: 8,
+                                                        decoration: BoxDecoration(
+                                                          color: status.color,
+                                                          shape:
+                                                              BoxShape.circle,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 6),
+                                                      Text(
+                                                        '${status.label} · '
+                                                        'Stock ${_fmtQty(item.stock)}'
+                                                        '${item.outOfStock ? ' · AGOTADO' : ''}'
+                                                        ' · mín ${_fmtQty(p.stockMin)}',
+                                                        style: theme.textTheme
+                                                            .bodySmall
+                                                            ?.copyWith(
+                                                          color: status.color,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        if (selected) ...[
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: MbTextField(
+                                                  controller: draft.quantity,
+                                                  label: 'Cantidad',
+                                                  keyboardType:
+                                                      TextInputType.number,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: MbTextField(
+                                                  controller: draft.cost,
+                                                  label: 'Costo por ud (S/)',
+                                                  keyboardType:
+                                                      const TextInputType
+                                                          .numberWithOptions(
+                                                          decimal: true),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
           ),
         ],
       ),
     );
   }
 
+  _StockStatus _stockStatus(
+      Product p, double stock, ColorScheme colors) {
+    if (stock < 0.0001) {
+      return _StockStatus(colors.error, 'Agotado');
+    }
+    if (stock <= p.stockMin) {
+      return _StockStatus(const Color(0xFFF57C00), 'Stock bajo');
+    }
+    if (p.stockMax != null && stock > p.stockMax!) {
+      return _StockStatus(const Color(0xFF1976D2), 'Sobrestock');
+    }
+    return _StockStatus(const Color(0xFF388E3C), 'Normal');
+  }
+
   String _fmtQty(double v) =>
       v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(2);
+
+  void _autoImportFromList(
+      List<ShoppingListItemWithProduct> shoppingList,
+      List<ProductStock> allProducts) {
+    for (final entry in shoppingList) {
+      final id = entry.item.productId;
+      final ps = allProducts.where((p) => p.product.id == id).firstOrNull;
+      if (ps != null && !_selected.containsKey(id)) {
+        _toggleWithQuantity(ps, entry.item.quantity);
+      }
+    }
+  }
+}
+
+class _StockStatus {
+  final Color color;
+  final String label;
+  const _StockStatus(this.color, this.label);
 }
