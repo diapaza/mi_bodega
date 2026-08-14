@@ -8,6 +8,7 @@ import 'tables/inventory.dart';
 import 'tables/products.dart';
 import 'tables/purchases.dart';
 import 'tables/sales.dart';
+import 'tables/shopping_list.dart';
 import 'tables/system.dart';
 
 import 'daos.dart';
@@ -47,6 +48,7 @@ part 'app_database.g.dart';
     AuditLogs,
     Backups,
     AppSettings,
+    ShoppingListItems,
   ],
   daos: [
     CatalogDao,
@@ -59,13 +61,14 @@ part 'app_database.g.dart';
     StoreDao,
     AuditDao,
     BackupDao,
+    ShoppingListDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   /// Versión actual del esquema (para comparar con `PRAGMA user_version`).
-  static const currentSchemaVersion = 4;
+  static const currentSchemaVersion = 5;
 
   @override
   int get schemaVersion => currentSchemaVersion;

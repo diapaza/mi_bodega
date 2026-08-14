@@ -38,6 +38,8 @@ import 'package:mi_bodega/features/products/domain/repositories/product_reposito
 import 'package:mi_bodega/features/purchases/data/repositories/drift_purchase_repository.dart';
 import 'package:mi_bodega/features/purchases/data/repositories/drift_supplier_repository.dart';
 import 'package:mi_bodega/features/purchases/domain/repositories/purchase_repository.dart';
+import 'package:mi_bodega/features/purchases/domain/repositories/shopping_list_repository.dart';
+import 'package:mi_bodega/features/purchases/data/repositories/drift_shopping_list_repository.dart';
 import 'package:mi_bodega/features/store/data/repositories/drift_store_repository.dart';
 import 'package:mi_bodega/features/store/domain/repositories/store_repository.dart';
 
@@ -85,6 +87,10 @@ final purchaseRepositoryProvider = Provider<PurchaseRepository>(
 
 final supplierRepositoryProvider = Provider<SupplierRepository>(
   (ref) => DriftSupplierRepository(ref.watch(databaseProvider)),
+);
+
+final shoppingListRepositoryProvider = Provider<ShoppingListRepository>(
+  (ref) => DriftShoppingListRepository(ref.watch(databaseProvider)),
 );
 
 final cashRepositoryProvider = Provider<CashRepository>(

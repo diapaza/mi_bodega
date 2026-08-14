@@ -36,6 +36,10 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
           'WHERE purchase_unit_id IS NULL',
         );
       }
+      if (from < 5) {
+        // v5: lista de compras persistente.
+        await m.createTable(db.shoppingListItems);
+      }
     },
   );
 }

@@ -286,3 +286,37 @@ class BackupDaoManager {
   $$BackupsTableTableManager get backups =>
       $$BackupsTableTableManager(_db.attachedDatabase, _db.backups);
 }
+
+mixin _$ShoppingListDaoMixin on DatabaseAccessor<AppDatabase> {
+  $StoresTable get stores => attachedDatabase.stores;
+  $CategoriesTable get categories => attachedDatabase.categories;
+  $BrandsTable get brands => attachedDatabase.brands;
+  $UnitsTable get units => attachedDatabase.units;
+  $ProductsTable get products => attachedDatabase.products;
+  $ShoppingListItemsTable get shoppingListItems =>
+      attachedDatabase.shoppingListItems;
+  $InventoryTable get inventory => attachedDatabase.inventory;
+  ShoppingListDaoManager get managers => ShoppingListDaoManager(this);
+}
+
+class ShoppingListDaoManager {
+  final _$ShoppingListDaoMixin _db;
+  ShoppingListDaoManager(this._db);
+  $$StoresTableTableManager get stores =>
+      $$StoresTableTableManager(_db.attachedDatabase, _db.stores);
+  $$CategoriesTableTableManager get categories =>
+      $$CategoriesTableTableManager(_db.attachedDatabase, _db.categories);
+  $$BrandsTableTableManager get brands =>
+      $$BrandsTableTableManager(_db.attachedDatabase, _db.brands);
+  $$UnitsTableTableManager get units =>
+      $$UnitsTableTableManager(_db.attachedDatabase, _db.units);
+  $$ProductsTableTableManager get products =>
+      $$ProductsTableTableManager(_db.attachedDatabase, _db.products);
+  $$ShoppingListItemsTableTableManager get shoppingListItems =>
+      $$ShoppingListItemsTableTableManager(
+        _db.attachedDatabase,
+        _db.shoppingListItems,
+      );
+  $$InventoryTableTableManager get inventory =>
+      $$InventoryTableTableManager(_db.attachedDatabase, _db.inventory);
+}

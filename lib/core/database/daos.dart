@@ -11,6 +11,7 @@ import 'tables/inventory.dart';
 import 'tables/products.dart';
 import 'tables/purchases.dart';
 import 'tables/sales.dart';
+import 'tables/shopping_list.dart';
 import 'tables/system.dart';
 
 part 'daos.g.dart';
@@ -687,5 +688,45 @@ class BackupDao extends DatabaseAccessor<AppDatabase> with _$BackupDaoMixin {
 
   Future<int> deleteBackup(int id) {
     return (delete(backups)..where((t) => t.id.equals(id))).go();
+  }
+}
+
+@DriftAccessor(tables: [ShoppingListItems, Products, Inventory])
+class ShoppingListDao extends DatabaseAccessor<AppDatabase>
+    with _$ShoppingListDaoMixin {
+  ShoppingListDao(super.db);
+
+  Stream<List<TypedResult>> watchItems(int storeId) {
+    final query = select(shoppingListItems).join([
+      leftOuterJoin(products, products.id.equalsExp(shoppingListItems.productId)),
+      leftOuterJoin(inventory, inventory.productId.equalsExp(products.id)),
+    ]);
+    query.where(shoppingListItems.storeId.equals(storeId));
+    query.orderBy([OrderingTerm.desc(shoppingListItems.createdAt)]);
+    return query.watch();
+  }
+
+  Future<int> addItem(ShoppingListItemsCompanion entry) =>
+      into(shoppingListItems).insert(entry);
+
+  Future<bool> updateItem(ShoppingListItemsCompanion entry) =>
+      update(shoppingListItems).replace(entry);
+
+  Future<int> removeItem(int id) =>
+      (delete(shoppingListItems)..where((t) => t.id.equals(id))).go();
+
+  Future<int> removeByProductId(int storeId, int productId) =>
+      (delete(shoppingListItems)
+            ..where((t) =>
+                t.storeId.equals(storeId) &
+                t.productId.equals(productId)))
+          .go();
+
+  Future<ShoppingListItem?> findByProductId(int storeId, int productId) {
+    return (select(shoppingListItems)
+          ..where((t) =>
+              t.storeId.equals(storeId) & t.productId.equals(productId))
+          ..limit(1))
+        .getSingleOrNull();
   }
 }
