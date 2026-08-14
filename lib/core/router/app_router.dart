@@ -17,6 +17,7 @@ import '../../features/inventory/presentation/movements_history_screen.dart';
 import '../../features/products/presentation/product_form_screen.dart';
 import '../../features/purchases/presentation/purchases_list_screen.dart';
 import '../../features/purchases/presentation/restock_screen.dart';
+import '../../features/purchases/presentation/shopping_list_screen.dart';
 import '../../features/purchases/presentation/suppliers_screen.dart';
 import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/roles/presentation/role_edit_screen.dart';
@@ -45,6 +46,7 @@ String? permissionForRoute(String path) {
   if (path.startsWith('/inventory')) return 'inventory.view';
   if (path == '/purchases') return 'purchases.view';
   if (path == '/purchases/new') return 'purchases.create';
+  if (path == '/shopping-list') return 'purchases.create';
   if (path == '/suppliers') return 'suppliers.manage';
   if (path == '/sales') return 'sales.view';
   if (path.startsWith('/cash')) return 'cash.view';
@@ -119,6 +121,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/purchases', builder: (_, _) => const PurchasesListScreen()),
       GoRoute(path: '/purchases/new', builder: (_, _) => const RestockScreen()),
+      GoRoute(path: '/shopping-list', builder: (_, _) => const ShoppingListScreen()),
       GoRoute(path: '/suppliers', builder: (_, _) => const SuppliersScreen()),
       GoRoute(path: '/sales', builder: (_, _) => const SalesListScreen()),
       GoRoute(path: '/cash', builder: (_, _) => const CashScreen()),
