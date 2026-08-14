@@ -16,7 +16,6 @@ import '../../products/presentation/products_providers.dart';
 import '../../sales/domain/entities/sale.dart';
 import 'cart_controller.dart';
 import 'pos_providers.dart';
-import 'sale_success_overlay.dart';
 
 /// Sheet unificado de carrito + pago del POS.
 class CartSheet extends ConsumerStatefulWidget {
@@ -121,8 +120,7 @@ class _CartSheetState extends ConsumerState<CartSheet> {
     final detail = result.orNull!;
     HapticFeedback.heavyImpact();
     ref.read(cartProvider.notifier).clear();
-    Navigator.of(context).popUntil((r) => r.isFirst);
-    showSaleSuccess(context, detail);
+    Navigator.of(context).pop(detail);
   }
 
   @override
@@ -187,7 +185,9 @@ class _CartSheetState extends ConsumerState<CartSheet> {
                 title: 'Carrito vacío',
               )
             else if (_showPayment)
-              _buildPaymentSection(context, cart, isCash, missing, canConfirm, theme, colors)
+              Flexible(
+                child: _buildPaymentSection(context, cart, isCash, missing, canConfirm, theme, colors),
+              )
             else
               Flexible(
                 child: ListView.separated(
@@ -226,17 +226,21 @@ class _CartSheetState extends ConsumerState<CartSheet> {
                       ),
                     ),
                     if (!_showPayment)
-                      MbButton(
-                        label: 'Cobrar',
-                        icon: Icons.point_of_sale,
-                        onPressed: cart.isEmpty ? null : () => setState(() => _showPayment = true),
+                      Expanded(
+                        child: MbButton(
+                          label: 'Cobrar',
+                          icon: Icons.point_of_sale,
+                          onPressed: cart.isEmpty ? null : () => setState(() => _showPayment = true),
+                        ),
                       )
                     else
-                      MbButton(
-                        label: missing.isZero ? 'Confirmar venta' : 'Faltan ${missing.format()}',
-                        icon: Icons.check_circle_outline,
-                        loading: _saving,
-                        onPressed: canConfirm && !_saving ? _confirm : null,
+                      Expanded(
+                        child: MbButton(
+                          label: missing.isZero ? 'Confirmar venta' : 'Faltan ${missing.format()}',
+                          icon: Icons.check_circle_outline,
+                          loading: _saving,
+                          onPressed: canConfirm && !_saving ? _confirm : null,
+                        ),
                       ),
                   ],
                 ),

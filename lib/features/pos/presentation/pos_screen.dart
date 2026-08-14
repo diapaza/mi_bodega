@@ -17,6 +17,7 @@ import '../../products/presentation/widgets/product_image.dart';
 import 'cart_controller.dart';
 import 'cart_sheet.dart';
 import 'pos_providers.dart';
+import 'sale_success_overlay.dart';
 
 /// Punto de venta: pantalla única (búsqueda + grid + carrito + cobro).
 class PosScreen extends ConsumerStatefulWidget {
@@ -265,12 +266,17 @@ class _PosScreenState extends ConsumerState<PosScreen> {
               cart: cart,
               hasCashSession: cashSessionAsync.valueOrNull != null,
               enabled: !cart.isEmpty && cashSessionAsync.valueOrNull != null,
-              onTap: () => showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                useSafeArea: true,
-                builder: (_) => const CartSheet(),
-              ),
+              onTap: () async {
+                final result = await showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  builder: (_) => const CartSheet(),
+                );
+                if (result != null && mounted) {
+                  showSaleSuccess(context, result);
+                }
+              },
             ),
           ],
         ),
