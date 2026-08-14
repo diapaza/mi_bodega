@@ -25,6 +25,9 @@ class ProductImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final iconSize = (width != null && width!.isFinite && width! > 0)
+        ? (width! * 0.4).clamp(16.0, 48.0)
+        : 40.0;
     final fallback = Container(
       width: width,
       height: height,
@@ -33,7 +36,7 @@ class ProductImage extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: Icon(Icons.inventory_2_outlined,
-          size: (width ?? 56) * 0.4, color: colors.onSurfaceVariant),
+          size: iconSize, color: colors.onSurfaceVariant),
     );
     if (photoPath == null || photoPath!.isEmpty) return fallback;
 

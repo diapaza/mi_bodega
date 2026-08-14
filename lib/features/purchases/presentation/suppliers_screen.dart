@@ -49,6 +49,7 @@ class SuppliersScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Proveedores')),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'suppliers-fab',
         onPressed: () => _add(context, ref),
         icon: const Icon(Icons.add),
         label: const Text('Nuevo'),

@@ -144,6 +144,7 @@ class _ManageListScreen<T> extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(title)),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'catalog-fab',
         onPressed: () async {
           final name = await _promptName(context, 'Nueva $title');
           if (name == null || name.trim().isEmpty) return;

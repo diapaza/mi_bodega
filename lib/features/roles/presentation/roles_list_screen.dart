@@ -25,6 +25,7 @@ class RolesListScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Roles y permisos')),
       floatingActionButton: canManage
           ? FloatingActionButton.extended(
+              heroTag: 'roles-fab',
               onPressed: () => context.push('/roles/new'),
               icon: const Icon(Icons.add),
               label: const Text('Nuevo rol'),

@@ -70,6 +70,7 @@ class _ProductsListScreenState extends ConsumerState<ProductsListScreen> {
       ),
       floatingActionButton: canCreate
           ? FloatingActionButton.extended(
+              heroTag: 'products-fab',
               onPressed: () => context.push('/products/new'),
               icon: const Icon(Icons.add),
               label: const Text('Nuevo'),

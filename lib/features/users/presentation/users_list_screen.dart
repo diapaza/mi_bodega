@@ -33,6 +33,7 @@ class UsersListScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Usuarios')),
       floatingActionButton: canCreate
           ? FloatingActionButton.extended(
+              heroTag: 'users-fab',
               onPressed: () => context.push('/users/new'),
               icon: const Icon(Icons.person_add),
               label: const Text('Nuevo'),
