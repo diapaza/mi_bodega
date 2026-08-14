@@ -7,15 +7,19 @@ import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
 import '../../../core/money/money.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../shared/widgets/mb_button.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/presentation/session_controller.dart';
+import '../../catalog/domain/entities/catalog.dart';
 import '../../catalog/presentation/catalog_providers.dart';
 import '../domain/entities/product.dart';
 import 'products_providers.dart';
 import 'widgets/conversions_editor.dart';
 import 'widgets/photo_field.dart';
 import 'widgets/price_recommender.dart';
+import 'widgets/product_image.dart';
+import 'widgets/product_form_step_indicator.dart';
+import 'widgets/product_form_nav_bar.dart';
+import 'widgets/product_form_summary.dart';
 
 class ProductFormScreen extends ConsumerStatefulWidget {
   final int? productId;
@@ -47,6 +51,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   List<ConversionDraft> _conversions = [];
   bool _loaded = false;
   bool _saving = false;
+  int _currentStep = 0;
+
+  static const _totalSteps = 5;
 
   bool get _isEditing => widget.productId != null;
 
@@ -111,6 +118,56 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   Money _money(String text) => Money.fromSoles(double.tryParse(text.trim()) ?? 0);
 
+  bool _validateCurrentStep() {
+    switch (_currentStep) {
+      case 0:
+        if (_name.text.trim().isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('El nombre es obligatorio.')),
+          );
+          return false;
+        }
+        return true;
+      case 1:
+        if (_unitId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('La unidad base de venta es obligatoria.')),
+          );
+          return false;
+        }
+        return true;
+      case 2:
+      case 3:
+        return true;
+      default:
+        return true;
+    }
+  }
+
+  void _nextStep() {
+    if (_validateCurrentStep() && _currentStep < _totalSteps - 1) {
+      setState(() => _currentStep++);
+      _pageController.animateToPage(
+        _currentStep,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _previousStep() {
+    if (_currentStep > 0) {
+      setState(() => _currentStep--);
+      _pageController.animateToPage(
+        _currentStep,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  final _pageController = PageController();
+
   Future<void> _pickPhoto(ImageSource source) async {
     final guard =
         ensureAllowed(ref.read(sessionPermissionsProvider), 'products.edit');
@@ -125,7 +182,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final photo = ref.read(photoServiceProvider);
     final path = await photo.pickAndSave(source);
     if (path != null) {
-      // Reemplazo: eliminar foto anterior si existía.
       final old = _photoPath;
       setState(() => _photoPath = path);
       if (old != null) await photo.deletePhoto(old);
@@ -216,7 +272,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       );
       return;
     }
-    // Limpiar foto original si fue reemplazada/removida.
     if (_originalPhotoPath != null && _originalPhotoPath != _photoPath) {
       await ref.read(photoServiceProvider).deletePhoto(_originalPhotoPath!);
     }
@@ -272,7 +327,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('[ProductForm] build() isEditing=$_isEditing');
     final session = ref.watch(sessionControllerProvider).valueOrNull;
     final canEdit = session?.can('products.edit') ?? false;
     final canDisable = session?.can('products.disable') ?? false;
@@ -280,14 +334,11 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final categories = ref.watch(categoriesProvider).valueOrNull ?? const [];
     final brands = ref.watch(brandsProvider).valueOrNull ?? const [];
     final units = ref.watch(unitsProvider).valueOrNull ?? const [];
-    print('[ProductForm] units=${units.length} _unitId=$_unitId');
 
     if (!_loaded) {
       return Scaffold(appBar: AppBar(), body: const Center(child: CircularProgressIndicator()));
     }
 
-    final theme = Theme.of(context);
-    final colors = context.colors;
     final salePrice = _money(_sale.text);
     final purchasePrice = _money(_purchase.text);
     final unitsPerPkg = double.tryParse(_unitsPerPkg.text) ?? 1;
@@ -295,12 +346,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         ? Money((purchasePrice.cents / unitsPerPkg).round())
         : purchasePrice;
 
-    // Nombre de la unidad de compra para etiquetas.
     final purchaseUnitName = _purchaseUnitId != null
         ? units.where((u) => u.id == _purchaseUnitId).map((u) => u.name).firstOrNull ?? 'compra'
         : null;
 
-    // Nombre de la unidad base de venta para etiquetas.
     final baseUnitName = _unitId != null
         ? units.where((u) => u.id == _unitId).map((u) => u.name).firstOrNull ?? 'unidad'
         : null;
@@ -318,234 +367,495 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              PhotoField(
-                photoPath: _photoPath,
-                onPick: _pickPhoto,
-                onRemove: _removePhoto,
-              ),
-              const SizedBox(height: 16),
-              // --- Información básica ---
-              _SectionHeader(title: 'Información básica'),
-              const SizedBox(height: 8),
-              MbTextField(
-                controller: _name,
-                label: 'Nombre *',
-                enabled: canEdit,
-              ),
-              const SizedBox(height: 12),
-              Row(
+        child: Column(
+          children: [
+            ProductFormStepIndicator(
+              currentStep: _currentStep,
+              totalSteps: _totalSteps,
+            ),
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                onPageChanged: (page) => setState(() => _currentStep = page),
                 children: [
-                  Expanded(
-                    child: MbTextField(controller: _sku, label: 'Código (SKU)'),
+                  _StepBasicInfo(
+                    photoPath: _photoPath,
+                    name: _name,
+                    sku: _sku,
+                    barcode: _barcode,
+                    description: _description,
+                    canEdit: canEdit,
+                    onPickPhoto: _pickPhoto,
+                    onRemovePhoto: _removePhoto,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: MbTextField(controller: _barcode, label: 'Código de barras'),
+                  _StepClassification(
+                    photoPath: _photoPath,
+                    productName: _name.text,
+                    categoryId: _categoryId,
+                    brandId: _brandId,
+                    unitId: _unitId,
+                    purchaseUnitId: _purchaseUnitId,
+                    unitsPerPkg: _unitsPerPkg,
+                    categories: categories,
+                    brands: brands,
+                    units: units,
+                    baseUnitName: baseUnitName,
+                    purchaseUnitName: purchaseUnitName,
+                    onCategoryChanged: (v) => setState(() => _categoryId = v),
+                    onBrandChanged: (v) => setState(() => _brandId = v),
+                    onUnitChanged: (v) {
+                      setState(() {
+                        _unitId = v;
+                        _purchaseUnitId ??= v;
+                      });
+                    },
+                    onPurchaseUnitChanged: (v) => setState(() => _purchaseUnitId = v),
+                    onUnitsPerPkgChanged: (_) => setState(() {}),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              MbTextField(
-                controller: _description,
-                label: 'Descripción',
-                maxLines: 2,
-              ),
-              const SizedBox(height: 20),
-              // --- Clasificación ---
-              _SectionHeader(title: 'Clasificación'),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<int?>(
-                      initialValue: _categoryId,
-                      decoration: const InputDecoration(labelText: 'Categoría'),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('Sin categoría')),
-                        for (final c in categories)
-                          DropdownMenuItem(value: c.id, child: Text(c.name)),
-                      ],
-                      onChanged: (v) => setState(() => _categoryId = v),
-                    ),
+                  _StepPrices(
+                    photoPath: _photoPath,
+                    productName: _name.text,
+                    purchase: _purchase,
+                    costPerBase: costPerBase,
+                    unitsPerPkg: unitsPerPkg,
+                    purchaseUnitName: purchaseUnitName,
+                    salePrice: salePrice,
+                    onPriceChanged: (price) {
+                      final newText = (price.cents / 100).toStringAsFixed(2);
+                      if (_sale.text != newText) {
+                        _sale.text = newText;
+                      }
+                    },
+                    onCostChanged: (_) => setState(() {}),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: DropdownButtonFormField<int?>(
-                      initialValue: _brandId,
-                      decoration: const InputDecoration(labelText: 'Marca'),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('Sin marca')),
-                        for (final b in brands)
-                          DropdownMenuItem(value: b.id, child: Text(b.name)),
-                      ],
-                      onChanged: (v) => setState(() => _brandId = v),
-                    ),
+                  _StepStock(
+                    photoPath: _photoPath,
+                    productName: _name.text,
+                    stockMin: _stockMin,
+                    stockMax: _stockMax,
+                    purchasedQty: _purchasedQty,
+                    isEditing: _isEditing,
+                    units: units,
+                    conversions: _conversions,
+                    salePrice: salePrice,
+                    unitSalePrice: salePrice,
+                    purchaseUnitName: purchaseUnitName,
+                    unitsPerPkg: unitsPerPkg,
+                    onConversionsChanged: (drafts) => _conversions = drafts,
+                    onPurchasedQtyChanged: (_) => setState(() {}),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<int?>(
-                initialValue: _unitId,
-                decoration: const InputDecoration(labelText: 'Unidad base de venta *'),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('Seleccionar unidad')),
-                  for (final u in units)
-                    DropdownMenuItem(value: u.id, child: Text('${u.name} (${u.symbol})')),
-                ],
-                onChanged: (v) {
-                  setState(() {
-                    _unitId = v;
-                    // Si no hay unidad de compra seleccionada, usar la base.
-                    _purchaseUnitId ??= v;
-                  });
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<int?>(
-                initialValue: _purchaseUnitId,
-                decoration: const InputDecoration(labelText: 'Unidad de compra *'),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('Igual que unidad base')),
-                  for (final u in units)
-                    DropdownMenuItem(value: u.id, child: Text('${u.name} (${u.symbol})')),
-                ],
-                onChanged: (v) => setState(() => _purchaseUnitId = v),
-              ),
-              const SizedBox(height: 12),
-              MbTextField(
-                controller: _unitsPerPkg,
-                label: 'Unidades de venta por unidad de compra',
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                onChanged: (_) => setState(() {}),
-                clearOnFocus: true,
-              ),
-              if (_purchaseUnitId != null && _unitId != null && _purchaseUnitId != _unitId) ...[
-                const SizedBox(height: 4),
-                Text(
-                  '${_unitsPerPkg.text.isEmpty ? '0' : _unitsPerPkg.text} '
-                  '${baseUnitName ?? 'unidad(es)'} por ${purchaseUnitName ?? 'compra'}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 20),
-              // --- Precios ---
-              _SectionHeader(title: 'Precios'),
-              const SizedBox(height: 8),
-              MbTextField(
-                controller: _purchase,
-                label: purchaseUnitName != null
-                    ? 'Costo por $purchaseUnitName (S/)'
-                    : 'Costo unitario (S/)',
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                onChanged: (_) => setState(() {}),
-                clearOnFocus: true,
-              ),
-              const SizedBox(height: 12),
-              PriceRecommender(
-                cost: costPerBase,
-                unitsPerPkg: unitsPerPkg,
-                purchaseUnitName: purchaseUnitName,
-                initialSalePrice: salePrice,
-                onPriceChanged: (price) {
-                  final newText = (price.cents / 100).toStringAsFixed(2);
-                  if (_sale.text != newText) {
-                    _sale.text = newText;
-                  }
-                },
-              ),
-              const SizedBox(height: 20),
-              // --- Stock ---
-              _SectionHeader(title: 'Stock'),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: MbTextField(
-                      controller: _stockMin,
-                      label: 'Stock mínimo (unidades de venta)',
-                      keyboardType: TextInputType.number,
-                      clearOnFocus: true,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: MbTextField(
-                      controller: _stockMax,
-                      label: 'Stock máximo (unidades de venta)',
-                      keyboardType: TextInputType.number,
-                      clearOnFocus: true,
-                    ),
+                  ProductFormSummary(
+                    photoPath: _photoPath,
+                    name: _name.text,
+                    sku: _sku.text.isEmpty ? null : _sku.text,
+                    barcode: _barcode.text.isEmpty ? null : _barcode.text,
+                    description: _description.text.isEmpty ? null : _description.text,
+                    categoryId: _categoryId,
+                    brandId: _brandId,
+                    unitId: _unitId,
+                    purchaseUnitId: _purchaseUnitId,
+                    unitsPerPkg: unitsPerPkg,
+                    purchasePrice: purchasePrice,
+                    salePrice: salePrice,
+                    stockMin: double.tryParse(_stockMin.text) ?? 0,
+                    stockMax: _stockMax.text.trim().isEmpty
+                        ? null
+                        : double.tryParse(_stockMax.text),
+                    purchasedQty: double.tryParse(_purchasedQty.text) ?? 0,
+                    isEditing: _isEditing,
+                    categories: categories,
+                    brands: brands,
+                    units: units,
+                    conversions: _conversions,
                   ),
                 ],
               ),
-              if (!_isEditing) ...[
-                const SizedBox(height: 12),
-                MbTextField(
-                  controller: _purchasedQty,
-                  label: purchaseUnitName != null
-                      ? 'Unidades de compra compradas'
-                      : 'Stock inicial',
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  clearOnFocus: true,
-                  onChanged: (_) => setState(() {}),
-                ),
-                if (purchaseUnitName != null && unitsPerPkg > 0) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Stock inicial = ${_purchasedQty.text.isEmpty ? '0' : _purchasedQty.text} '
-                    '$purchaseUnitName × $unitsPerPkg ud = '
-                    '${((double.tryParse(_purchasedQty.text) ?? 0) * unitsPerPkg).toInt()} unidades',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ],
-              const SizedBox(height: 20),
-              // --- Conversiones ---
-              _SectionHeader(title: 'Conversiones de unidad'),
-              const SizedBox(height: 8),
-              ConversionsEditor(
-                units: units,
-                initial: _conversions,
-                unitSalePrice: salePrice,
-                onChanged: (drafts) => _conversions = drafts,
-              ),
-              const SizedBox(height: 24),
-              MbButton(
-                label: _isEditing ? 'Guardar cambios' : 'Crear producto',
-                icon: Icons.check,
-                loading: _saving,
-                onPressed: _saving ? null : _save,
-              ),
-            ],
-          ),
+            ),
+            ProductFormNavBar(
+              currentStep: _currentStep,
+              totalSteps: _totalSteps,
+              isEditing: _isEditing,
+              saving: _saving,
+              onPrevious: _previousStep,
+              onNext: _nextStep,
+              onSave: _saving ? null : _save,
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader({required this.title});
+class _StepBasicInfo extends StatelessWidget {
+  final String? photoPath;
+  final TextEditingController name;
+  final TextEditingController sku;
+  final TextEditingController barcode;
+  final TextEditingController description;
+  final bool canEdit;
+  final Future<void> Function(ImageSource) onPickPhoto;
+  final Future<void> Function() onRemovePhoto;
+
+  const _StepBasicInfo({
+    required this.photoPath,
+    required this.name,
+    required this.sku,
+    required this.barcode,
+    required this.description,
+    required this.canEdit,
+    required this.onPickPhoto,
+    required this.onRemovePhoto,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PhotoField(
+            photoPath: photoPath,
+            onPick: onPickPhoto,
+            onRemove: onRemovePhoto,
+          ),
+          const SizedBox(height: 16),
+          MbTextField(
+            controller: name,
+            label: 'Nombre *',
+            enabled: canEdit,
+            autofocus: true,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: MbTextField(controller: sku, label: 'Código (SKU)'),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: MbTextField(controller: barcode, label: 'Código de barras'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          MbTextField(
+            controller: description,
+            label: 'Descripción',
+            maxLines: 2,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepClassification extends StatelessWidget {
+  final String? photoPath;
+  final String productName;
+  final int? categoryId;
+  final int? brandId;
+  final int? unitId;
+  final int? purchaseUnitId;
+  final TextEditingController unitsPerPkg;
+  final List categories;
+  final List brands;
+  final List units;
+  final String? baseUnitName;
+  final String? purchaseUnitName;
+  final ValueChanged<int?> onCategoryChanged;
+  final ValueChanged<int?> onBrandChanged;
+  final ValueChanged<int?> onUnitChanged;
+  final ValueChanged<int?> onPurchaseUnitChanged;
+  final ValueChanged<String?> onUnitsPerPkgChanged;
+
+  const _StepClassification({
+    required this.photoPath,
+    required this.productName,
+    required this.categoryId,
+    required this.brandId,
+    required this.unitId,
+    required this.purchaseUnitId,
+    required this.unitsPerPkg,
+    required this.categories,
+    required this.brands,
+    required this.units,
+    required this.baseUnitName,
+    required this.purchaseUnitName,
+    required this.onCategoryChanged,
+    required this.onBrandChanged,
+    required this.onUnitChanged,
+    required this.onPurchaseUnitChanged,
+    required this.onUnitsPerPkgChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = context.colors;
-    return Text(
-      title,
-      style: theme.textTheme.titleSmall?.copyWith(
-        color: colors.primary,
-        fontWeight: FontWeight.w700,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _ProductBriefHeader(photoPath: photoPath, name: productName),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<int?>(
+                  initialValue: categoryId,
+                  decoration: const InputDecoration(labelText: 'Categoría'),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('Sin categoría')),
+                    for (final c in categories)
+                      DropdownMenuItem(value: c.id, child: Text(c.name)),
+                  ],
+                  onChanged: onCategoryChanged,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: DropdownButtonFormField<int?>(
+                  initialValue: brandId,
+                  decoration: const InputDecoration(labelText: 'Marca'),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('Sin marca')),
+                    for (final b in brands)
+                      DropdownMenuItem(value: b.id, child: Text(b.name)),
+                  ],
+                  onChanged: onBrandChanged,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<int?>(
+            initialValue: unitId,
+            decoration: const InputDecoration(labelText: 'Unidad base de venta *'),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('Seleccionar unidad')),
+              for (final u in units)
+                DropdownMenuItem(value: u.id, child: Text('${u.name} (${u.symbol})')),
+            ],
+            onChanged: onUnitChanged,
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<int?>(
+            initialValue: purchaseUnitId,
+            decoration: const InputDecoration(labelText: 'Unidad de compra'),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('Igual que unidad base')),
+              for (final u in units)
+                DropdownMenuItem(value: u.id, child: Text('${u.name} (${u.symbol})')),
+            ],
+            onChanged: onPurchaseUnitChanged,
+          ),
+          const SizedBox(height: 12),
+          MbTextField(
+            controller: unitsPerPkg,
+            label: 'Unidades de venta por unidad de compra',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: onUnitsPerPkgChanged,
+            clearOnFocus: true,
+          ),
+          if (purchaseUnitId != null && unitId != null && purchaseUnitId != unitId) ...[
+            const SizedBox(height: 4),
+            Text(
+              '${unitsPerPkg.text.isEmpty ? '0' : unitsPerPkg.text} '
+              '${baseUnitName ?? 'unidad(es)'} por ${purchaseUnitName ?? 'compra'}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StepPrices extends StatelessWidget {
+  final String? photoPath;
+  final String productName;
+  final TextEditingController purchase;
+  final Money costPerBase;
+  final double unitsPerPkg;
+  final String? purchaseUnitName;
+  final Money salePrice;
+  final ValueChanged<Money> onPriceChanged;
+  final ValueChanged<String> onCostChanged;
+
+  const _StepPrices({
+    required this.photoPath,
+    required this.productName,
+    required this.purchase,
+    required this.costPerBase,
+    required this.unitsPerPkg,
+    required this.purchaseUnitName,
+    required this.salePrice,
+    required this.onPriceChanged,
+    required this.onCostChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _ProductBriefHeader(photoPath: photoPath, name: productName),
+          MbTextField(
+            controller: purchase,
+            label: purchaseUnitName != null
+                ? 'Costo por $purchaseUnitName (S/)'
+                : 'Costo unitario (S/)',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: onCostChanged,
+            clearOnFocus: true,
+          ),
+          const SizedBox(height: 12),
+          PriceRecommender(
+            cost: costPerBase,
+            unitsPerPkg: unitsPerPkg,
+            purchaseUnitName: purchaseUnitName,
+            initialSalePrice: salePrice,
+            onPriceChanged: onPriceChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepStock extends StatelessWidget {
+  final String? photoPath;
+  final String productName;
+  final TextEditingController stockMin;
+  final TextEditingController stockMax;
+  final TextEditingController purchasedQty;
+  final bool isEditing;
+  final List<Unit> units;
+  final List<ConversionDraft> conversions;
+  final Money salePrice;
+  final Money unitSalePrice;
+  final String? purchaseUnitName;
+  final double unitsPerPkg;
+  final ValueChanged<List<ConversionDraft>> onConversionsChanged;
+  final ValueChanged<String?> onPurchasedQtyChanged;
+
+  const _StepStock({
+    required this.photoPath,
+    required this.productName,
+    required this.stockMin,
+    required this.stockMax,
+    required this.purchasedQty,
+    required this.isEditing,
+    required this.units,
+    required this.conversions,
+    required this.salePrice,
+    required this.unitSalePrice,
+    required this.purchaseUnitName,
+    required this.unitsPerPkg,
+    required this.onConversionsChanged,
+    required this.onPurchasedQtyChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = context.colors;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _ProductBriefHeader(photoPath: photoPath, name: productName),
+          Row(
+            children: [
+              Expanded(
+                child: MbTextField(
+                  controller: stockMin,
+                  label: 'Stock mínimo (unidades de venta)',
+                  keyboardType: TextInputType.number,
+                  clearOnFocus: true,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: MbTextField(
+                  controller: stockMax,
+                  label: 'Stock máximo (unidades de venta)',
+                  keyboardType: TextInputType.number,
+                  clearOnFocus: true,
+                ),
+              ),
+            ],
+          ),
+          if (!isEditing) ...[
+            const SizedBox(height: 12),
+            MbTextField(
+              controller: purchasedQty,
+              label: purchaseUnitName != null
+                  ? 'Unidades de compra compradas'
+                  : 'Stock inicial',
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              clearOnFocus: true,
+              onChanged: onPurchasedQtyChanged,
+            ),
+            if (purchaseUnitName != null && unitsPerPkg > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Stock inicial = ${purchasedQty.text.isEmpty ? '0' : purchasedQty.text} '
+                '$purchaseUnitName × $unitsPerPkg ud = '
+                '${((double.tryParse(purchasedQty.text) ?? 0) * unitsPerPkg).toInt()} unidades',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+          const SizedBox(height: 20),
+          ConversionsEditor(
+            units: units,
+            initial: conversions,
+            unitSalePrice: salePrice,
+            onChanged: onConversionsChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProductBriefHeader extends StatelessWidget {
+  final String? photoPath;
+  final String name;
+
+  const _ProductBriefHeader({required this.photoPath, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          ProductImage(photoPath: photoPath, width: 40, height: 40, borderRadius: 6),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              name.isEmpty ? 'Sin nombre' : name,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
