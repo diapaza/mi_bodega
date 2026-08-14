@@ -45,15 +45,47 @@ final outOfStockProvider = StreamProvider<List<ProductStock>>((ref) {
 final lowAndOutOfStockProvider = StreamProvider<List<ProductStock>>((ref) {
   final storeId = ref.watch(sessionControllerProvider).valueOrNull?.store?.id;
   if (storeId == null) return const Stream.empty();
-  final low$ = ref.watch(lowStockProvider).valueOrNull ?? const <ProductStock>[];
-  final out$ = ref.watch(outOfStockProvider).valueOrNull ?? const <ProductStock>[];
-  final seen = <int>{};
-  final merged = <ProductStock>[];
-  for (final p in [...low$, ...out$]) {
-    final id = p.product.id;
-    if (id != null && seen.add(id)) merged.add(p);
+
+  final controller = StreamController<List<ProductStock>>();
+
+  List<ProductStock>? lowData;
+  List<ProductStock>? outData;
+
+  void emitIfReady() {
+    if (lowData != null && outData != null && !controller.isClosed) {
+      final seen = <int>{};
+      final merged = <ProductStock>[];
+      for (final p in [...lowData!, ...outData!]) {
+        final id = p.product.id;
+        if (id != null && seen.add(id)) merged.add(p);
+      }
+      controller.add(merged);
+    }
   }
-  return Stream.value(merged);
+
+  // Leer valores actuales para no perder datos ya cargados.
+  lowData = ref.read(lowStockProvider).valueOrNull;
+  outData = ref.read(outOfStockProvider).valueOrNull;
+  emitIfReady();
+
+  // Escuchar cambios futuros.
+  final subLow = ref.listen(lowStockProvider, (_, next) {
+    lowData = next.valueOrNull;
+    emitIfReady();
+  });
+
+  final subOut = ref.listen(outOfStockProvider, (_, next) {
+    outData = next.valueOrNull;
+    emitIfReady();
+  });
+
+  ref.onDispose(() {
+    subLow.close();
+    subOut.close();
+    controller.close();
+  });
+
+  return controller.stream;
 });
 
 final excessStockProvider = StreamProvider<List<ProductStock>>((ref) {
