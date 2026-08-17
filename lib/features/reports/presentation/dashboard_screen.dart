@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
 import '../../auth/presentation/session_controller.dart';
+import '../../cash/presentation/cash_providers.dart';
 import '../../inventory/presentation/inventory_providers.dart';
 import '../../pos/presentation/pos_providers.dart';
 import '../../sales/domain/entities/sale.dart';
@@ -25,6 +27,7 @@ class DashboardScreen extends ConsumerWidget {
     final today = todayAsync.valueOrNull;
     final month = monthAsync.valueOrNull;
     final cashOpen = ref.watch(openCashSessionProvider).valueOrNull;
+    final cashSummary = ref.watch(cashSessionSummaryProvider).valueOrNull;
     final low = ref.watch(lowStockProvider).valueOrNull ?? const [];
     final out = ref.watch(outOfStockProvider).valueOrNull ?? const [];
     final top = ref.watch(topSoldProvider).valueOrNull ?? const [];
@@ -64,7 +67,7 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
               ],
-            ),
+            ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.05),
             const SizedBox(height: 12),
             _MetricCard(
               label: 'Ventas del mes',
@@ -73,7 +76,7 @@ class DashboardScreen extends ConsumerWidget {
               caption:
                   '${month?.count ?? 0} venta${month?.count == 1 ? '' : 's'}'
                   ' · ganancia ${month?.grossProfit.format() ?? 'S/ 0.00'}',
-            ),
+            ).animate().fadeIn(duration: 300.ms, delay: 100.ms).slideY(begin: 0.05),
             const SizedBox(height: 12),
             Card(
               child: ListTile(
@@ -85,7 +88,7 @@ class DashboardScreen extends ConsumerWidget {
                 subtitle: Text(cashOpen == null
                     ? 'Abre la caja para iniciar el turno.'
                     : 'Efectivo esperado: '
-                        '${(cashOpen.expectedAmount ?? cashOpen.openingAmount).format()}'),
+                        '${(cashSummary?.expected ?? cashOpen.openingAmount).format()}'),
                 trailing: TextButton(
                   onPressed: () => context.push('/cash'),
                   child: const Text('Ver caja'),
@@ -145,7 +148,7 @@ class DashboardScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                    );
+                    ).animate().fadeIn(duration: 300.ms, delay: Duration(milliseconds: 100 * i)).slideY(begin: 0.05);
                   },
                 ),
               ),
