@@ -22,6 +22,8 @@ class MbTextField extends StatefulWidget {
   final void Function(String)? onSubmitted;
   /// Si es true, al recibir foco se limpia el contenido del controller.
   final bool clearOnFocus;
+  /// Si es true y obscureText es true, muestra un botón de toggle de visibilidad.
+  final bool showPasswordToggle;
 
   const MbTextField({
     super.key,
@@ -43,6 +45,7 @@ class MbTextField extends StatefulWidget {
     this.onChanged,
     this.onSubmitted,
     this.clearOnFocus = false,
+    this.showPasswordToggle = true,
   });
 
   @override
@@ -51,12 +54,22 @@ class MbTextField extends StatefulWidget {
 
 class _MbTextFieldState extends State<MbTextField> {
   late final FocusNode _focusNode;
+  bool _obscured = true;
 
   @override
   void initState() {
     super.initState();
     _focusNode = FocusNode();
     _focusNode.addListener(_onFocusChange);
+    _obscured = widget.obscureText;
+  }
+
+  @override
+  void didUpdateWidget(MbTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.obscureText != oldWidget.obscureText) {
+      _obscured = widget.obscureText;
+    }
   }
 
   @override
@@ -80,11 +93,14 @@ class _MbTextFieldState extends State<MbTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final showToggle = widget.obscureText && widget.showPasswordToggle;
+
     return TextField(
       controller: widget.controller,
       focusNode: _focusNode,
       enabled: widget.enabled,
-      obscureText: widget.obscureText,
+      obscureText: _obscured,
       autofocus: widget.autofocus,
       keyboardType: widget.keyboardType,
       maxLines: widget.obscureText ? 1 : widget.maxLines,
@@ -93,14 +109,21 @@ class _MbTextFieldState extends State<MbTextField> {
       inputFormatters: widget.inputFormatters,
       onChanged: widget.onChanged,
       onSubmitted: widget.onSubmitted,
-      style: TextStyle(fontSize: 16),
+      style: theme.textTheme.bodyLarge,
       decoration: InputDecoration(
         labelText: widget.label,
         hintText: widget.hint,
         errorText: widget.errorText,
         helperText: widget.helperText,
         prefixIcon: widget.prefixIcon,
-        suffixIcon: widget.suffix,
+        suffixIcon: showToggle
+            ? IconButton(
+                icon: Icon(
+                  _obscured ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                ),
+                onPressed: () => setState(() => _obscured = !_obscured),
+              )
+            : widget.suffix,
         counterText: widget.maxLength == null ? '' : null,
       ),
     );
