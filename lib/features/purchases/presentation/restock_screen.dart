@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/di/app_providers.dart';
 import '../../../core/money/money.dart';
 import '../../../core/security/permission_guard.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/mb_button.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
 import '../../../shared/widgets/mb_snackbar.dart';
@@ -90,8 +92,8 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
         builder: (ctx) => AlertDialog(
           title: const Text('¡Atención!'),
           content: Text(
-            'Este producto ya tiene stock (${_fmtQty(item.stock)}) igual o mayor '
-            'al máximo (${_fmtQty(p.stockMax!)}). Al agregar más stock habrá '
+            'Este producto ya tiene stock (${fmtQty(item.stock)}) igual o mayor '
+            'al máximo (${fmtQty(p.stockMax!)}). Al agregar más stock habrá '
             'sobrestock. ¿Desea agregar de todos modos?',
           ),
           actions: [
@@ -139,8 +141,8 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
         builder: (ctx) => AlertDialog(
           title: const Text('¡Atención!'),
           content: Text(
-            'Este producto ya tiene stock (${_fmtQty(item.stock)}) igual o mayor '
-            'al máximo (${_fmtQty(p.stockMax!)}). Al agregar más stock habrá '
+            'Este producto ya tiene stock (${fmtQty(item.stock)}) igual o mayor '
+            'al máximo (${fmtQty(p.stockMax!)}). Al agregar más stock habrá '
             'sobrestock. ¿Desea agregar de todos modos?',
           ),
           actions: [
@@ -404,7 +406,7 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
                               final selected = draft != null;
                               final p = item.product;
                               final status =
-                                  _stockStatus(p, item.stock, colors);
+                                  _stockStatus(p, item.stock, context.colors);
 
                               return Card(
                                 color: selected
@@ -452,9 +454,9 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
                                                       const SizedBox(width: 6),
                                                       Text(
                                                         '${status.label} · '
-                                                        'Stock ${_fmtQty(item.stock)}'
+                                                        'Stock ${fmtQty(item.stock)}'
                                                         '${item.outOfStock ? ' · AGOTADO' : ''}'
-                                                        ' · mín ${_fmtQty(p.stockMin)}',
+                                                        ' · mín ${fmtQty(p.stockMin)}',
                                                         style: theme.textTheme
                                                             .bodySmall
                                                             ?.copyWith(
@@ -508,21 +510,18 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
   }
 
   _StockStatus _stockStatus(
-      Product p, double stock, ColorScheme colors) {
+      Product p, double stock, AppColors appColors) {
     if (stock < 0.0001) {
-      return _StockStatus(colors.error, 'Agotado');
+      return _StockStatus(appColors.error, 'Agotado');
     }
     if (stock <= p.stockMin) {
-      return _StockStatus(const Color(0xFFF57C00), 'Stock bajo');
+      return _StockStatus(appColors.warning, 'Stock bajo');
     }
     if (p.stockMax != null && stock > p.stockMax!) {
-      return _StockStatus(const Color(0xFF1976D2), 'Sobrestock');
+      return _StockStatus(appColors.info, 'Sobrestock');
     }
-    return _StockStatus(const Color(0xFF388E3C), 'Normal');
+    return _StockStatus(appColors.success, 'Normal');
   }
-
-  String _fmtQty(double v) =>
-      v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(2);
 
   void _autoImportFromList(
       List<ShoppingListItemWithProduct> shoppingList,

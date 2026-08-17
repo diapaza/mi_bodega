@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
+import '../../../core/utils/formatters.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../store/domain/entities/store.dart';
 import '../data/services/drive_client.dart';
@@ -233,7 +235,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   if (email != null && email.isNotEmpty)
                     Row(
                       children: [
-                        const Icon(Icons.check_circle, color: Colors.green),
+                        Icon(Icons.check_circle, color: context.colors.success),
                         const SizedBox(width: 8),
                         Expanded(child: Text('Conectado: $email')),
                       ],
@@ -350,7 +352,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                           contentPadding: EdgeInsets.zero,
                           leading: const Icon(Icons.folder_outlined),
                           title: Text(b.filename),
-                          subtitle: Text(b.createdAt.toIso8601String()),
+                          subtitle: Text(fmtDateTime(b.createdAt)),
                           trailing: MbBadge(b.status.dbName),
                         ),
                     ],

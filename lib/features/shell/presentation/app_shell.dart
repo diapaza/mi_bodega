@@ -81,7 +81,18 @@ class _AppShellState extends ConsumerState<AppShell> {
     final colors = context.colors;
     final session = ref.watch(sessionControllerProvider).valueOrNull;
     if (session == null || session.user == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Cargando...'),
+            ],
+          ),
+        ),
+      );
     }
     final destinations = _destinations(session);
     if (_selected >= destinations.length) _selected = 0;

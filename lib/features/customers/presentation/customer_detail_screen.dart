@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
 import '../../sales/domain/entities/sale.dart';
+import '../../../core/utils/formatters.dart';
 import 'customers_providers.dart';
 
 /// Detalle de cliente: datos, total comprado y historial de compras.
@@ -69,7 +70,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Última compra: ${_fmtDate(statsAsync.valueOrNull?.lastPurchaseAt)}',
+                    'Última compra: ${statsAsync.valueOrNull?.lastPurchaseAt != null ? fmtDate(statsAsync.valueOrNull!.lastPurchaseAt!) : '—'}',
                     style: theme.textTheme.bodySmall
                         ?.copyWith(color: colors.onSurfaceVariant),
                   ),
@@ -82,7 +83,11 @@ class CustomerDetailScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           salesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Text('Error: $e'),
+            error: (e, _) => MbEmptyState(
+              icon: Icons.error_outline,
+              title: 'Error al cargar',
+              message: '$e',
+            ),
             data: (sales) => sales.isEmpty
                 ? const MbEmptyState(
                     icon: Icons.receipt_long_outlined,
@@ -116,8 +121,4 @@ class CustomerDetailScreen extends ConsumerWidget {
     );
   }
 
-  String _fmtDate(DateTime? d) {
-    if (d == null) return '—';
-    return '${d.day}/${d.month}/${d.year}';
-  }
 }

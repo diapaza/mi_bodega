@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
 import '../../products/presentation/products_providers.dart';
 import '../domain/entities/purchase.dart';
@@ -19,7 +20,11 @@ class PurchasesListScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Compras')),
       body: purchasesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => MbEmptyState(
+          icon: Icons.error_outline,
+          title: 'Error al cargar',
+          message: '$e',
+        ),
         data: (purchases) {
           if (purchases.isEmpty) {
             return const MbEmptyState(
@@ -60,7 +65,7 @@ class _PurchaseCard extends ConsumerWidget {
         leading: Icon(Icons.shopping_cart_outlined, color: colors.primary),
         title: Text('Compra #${purchase.id}'),
         subtitle: Text(
-          _fmtDate(purchase.purchaseDate) +
+          fmtDate(purchase.purchaseDate) +
               (purchase.note != null ? ' · ${purchase.note}' : ''),
         ),
         trailing: Row(
@@ -80,7 +85,11 @@ class _PurchaseCard extends ConsumerWidget {
               padding: EdgeInsets.all(16),
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (e, _) => Text('Error: $e'),
+            error: (e, _) => MbEmptyState(
+              icon: Icons.error_outline,
+              title: 'Error al cargar',
+              message: '$e',
+            ),
             data: (items) => Column(
               children: [
                 for (final item in items)
@@ -101,9 +110,6 @@ class _PurchaseCard extends ConsumerWidget {
       ),
     );
   }
-
-  String _fmtDate(DateTime d) => '${d.day}/${d.month}/${d.year} '
-      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 }
 
 class _PurchaseItemTile extends ConsumerWidget {
@@ -118,11 +124,8 @@ class _PurchaseItemTile extends ConsumerWidget {
     return ListTile(
       dense: true,
       title: Text(product?.name ?? 'Producto #${item.productId}'),
-      subtitle: Text('${_fmtQty(item.quantity)} × ${item.unitPrice.format()}'),
+      subtitle: Text('${fmtQty(item.quantity)} × ${item.unitPrice.format()}'),
       trailing: Text(item.subtotal.format()),
     );
   }
-
-  String _fmtQty(double v) =>
-      v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(2);
 }

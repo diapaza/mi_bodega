@@ -33,7 +33,11 @@ class RolesListScreen extends ConsumerWidget {
           : null,
       body: rolesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => MbEmptyState(
+          icon: Icons.error_outline,
+          title: 'Error al cargar',
+          message: '$e',
+        ),
         data: (roles) {
           if (roles.isEmpty) {
             return const MbEmptyState(

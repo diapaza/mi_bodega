@@ -8,6 +8,9 @@ import 'package:gal/gal.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/money/money.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
+import '../../../shared/widgets/mb_confirm_dialog.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
 import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
@@ -82,7 +85,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                     final p = product.product;
                     final stock = product.stock;
 
-                    final status = _stockStatus(p, stock, colorScheme);
+                    final status = _stockStatus(p, stock, context.colors);
 
                     return Card(
                       child: Padding(
@@ -127,7 +130,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                                           ),
                                           const SizedBox(width: 8),
                                           Text(
-                                            'Stock: ${_fmtQty(stock)}',
+                                            'Stock: ${fmtQty(stock)}',
                                             style: theme.textTheme.bodySmall,
                                           ),
                                         ],
@@ -171,7 +174,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                               Row(
                                 children: [
                                   Text(
-                                    '${_fmtQty(item.quantity!)} × ${p.purchasePrice.format()}',
+                                    '${fmtQty(item.quantity!)} × ${p.purchasePrice.format()}',
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -187,7 +190,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                                   if (p.saleUnitsPerPurchaseUnit > 1) ...[
                                     const SizedBox(width: 8),
                                     Text(
-                                      '(${_fmtQty(item.quantity! * p.saleUnitsPerPurchaseUnit)} uds)',
+                                      '(${fmtQty(item.quantity! * p.saleUnitsPerPurchaseUnit)} uds)',
                                       style: theme.textTheme.bodySmall?.copyWith(
                                         color: colorScheme.onSurfaceVariant,
                                       ),
@@ -217,21 +220,18 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     );
   }
 
-  _StockStatus _stockStatus(Product p, double stock, ColorScheme colors) {
+  _StockStatus _stockStatus(Product p, double stock, AppColors appColors) {
     if (stock < 0.0001) {
-      return _StockStatus(colors.error, 'Agotado');
+      return _StockStatus(appColors.error, 'Agotado');
     }
     if (stock <= p.stockMin) {
-      return _StockStatus(const Color(0xFFF57C00), 'Stock bajo');
+      return _StockStatus(appColors.warning, 'Stock bajo');
     }
     if (p.stockMax != null && stock > p.stockMax!) {
-      return _StockStatus(const Color(0xFF1976D2), 'Sobrestock');
+      return _StockStatus(appColors.info, 'Sobrestock');
     }
-    return _StockStatus(const Color(0xFF388E3C), 'Normal');
+    return _StockStatus(appColors.success, 'Normal');
   }
-
-  String _fmtQty(double v) =>
-      v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(2);
 
   Future<void> _saveAsImage() async {
     try {
@@ -402,22 +402,12 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
   }
 
   Future<void> _removeItem(ShoppingListItem item) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar de la lista'),
-        content: const Text('¿Eliminar este producto de la lista de compras?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+    final confirmed = await showMbConfirm(
+      context,
+      title: 'Eliminar de la lista',
+      message: '¿Eliminar este producto de la lista de compras?',
+      confirmLabel: 'Eliminar',
+      isDestructive: true,
     );
     if (confirmed != true || !mounted) return;
 

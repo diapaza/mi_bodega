@@ -1,10 +1,12 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/money/money.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
 import '../../auth/presentation/session_controller.dart';
@@ -202,7 +204,7 @@ class InventoryScreen extends ConsumerWidget {
                     return Card(
                       child: ListTile(
                         onTap: () =>
-                            context.push('/inventory/${p.id}/movements'),
+                            context.push('/products/${p.id}'),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                         title: Text(
@@ -218,7 +220,7 @@ class InventoryScreen extends ConsumerWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              '${_fmtQty(item.stock)} ${unitSymbol(p.baseUnitId)}',
+                              '${fmtQty(item.stock)} ${unitSymbol(p.baseUnitId)}',
                               style: theme.textTheme.titleMedium?.copyWith(
                                 color: colors.primary,
                                 fontWeight: FontWeight.w700,
@@ -226,8 +228,8 @@ class InventoryScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'min ${_fmtQty(p.stockMin)}'
-                              '${p.stockMax != null ? ' · max ${_fmtQty(p.stockMax!)}' : ''}',
+                              'min ${fmtQty(p.stockMin)}'
+                              '${p.stockMax != null ? ' · max ${fmtQty(p.stockMax!)}' : ''}',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: colors.onSurfaceVariant,
                               ),
@@ -259,7 +261,7 @@ class InventoryScreen extends ConsumerWidget {
                         ),
                         isThreeLine: true,
                       ),
-                    );
+                    ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.05);
                   },
                 );
               },
@@ -270,9 +272,6 @@ class InventoryScreen extends ConsumerWidget {
       ),
     );
   }
-
-  String _fmtQty(double v) =>
-      v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(2);
 }
 
 class _CountBadge extends StatelessWidget {
