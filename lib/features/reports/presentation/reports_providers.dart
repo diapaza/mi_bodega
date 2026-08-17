@@ -10,6 +10,9 @@ enum ReportPeriod { today, yesterday, last7, thisMonth }
 final reportPeriodProvider =
     StateProvider<ReportPeriod>((_) => ReportPeriod.today);
 
+/// Contador que se incrementa después de cada venta para refrescar los providers.
+final saleRefreshProvider = StateProvider<int>((_) => 0);
+
 (DateTime?, DateTime?) _range(ReportPeriod period, DateTime now) {
   final startOfDay = DateTime(now.year, now.month, now.day);
   return switch (period) {
@@ -30,6 +33,7 @@ final reportPeriodProvider =
 }
 
 final reportSummaryProvider = FutureProvider<SalesSummary?>((ref) {
+  ref.watch(saleRefreshProvider); // Se re-ejecuta al crear venta
   final storeId = ref.watch(sessionControllerProvider).valueOrNull?.store?.id;
   if (storeId == null) return Future.value(null);
   final (from, to) = _range(ref.watch(reportPeriodProvider), DateTime.now());
@@ -40,6 +44,7 @@ final reportSummaryProvider = FutureProvider<SalesSummary?>((ref) {
 });
 
 final reportTopProductsProvider = FutureProvider<List<ProductSalesStats>>((ref) {
+  ref.watch(saleRefreshProvider); // Se re-ejecuta al crear venta
   final storeId = ref.watch(sessionControllerProvider).valueOrNull?.store?.id;
   if (storeId == null) return Future.value(const []);
   final (from, to) = _range(ref.watch(reportPeriodProvider), DateTime.now());
@@ -50,6 +55,7 @@ final reportTopProductsProvider = FutureProvider<List<ProductSalesStats>>((ref) 
 });
 
 final reportDailyProvider = FutureProvider<List<DailySalesPoint>>((ref) {
+  ref.watch(saleRefreshProvider); // Se re-ejecuta al crear venta
   final storeId = ref.watch(sessionControllerProvider).valueOrNull?.store?.id;
   if (storeId == null) return Future.value(const []);
   final (from, to) = _range(ReportPeriod.last7, DateTime.now());
@@ -61,6 +67,7 @@ final reportDailyProvider = FutureProvider<List<DailySalesPoint>>((ref) {
 
 /// Dashboard: ventas del día (hoy).
 final todaySummaryProvider = FutureProvider<SalesSummary?>((ref) {
+  ref.watch(saleRefreshProvider); // Se re-ejecuta al crear venta
   final storeId = ref.watch(sessionControllerProvider).valueOrNull?.store?.id;
   if (storeId == null) return Future.value(null);
   final (from, to) = _range(ReportPeriod.today, DateTime.now());
@@ -72,6 +79,7 @@ final todaySummaryProvider = FutureProvider<SalesSummary?>((ref) {
 
 /// Dashboard: ventas del mes.
 final monthSummaryProvider = FutureProvider<SalesSummary?>((ref) {
+  ref.watch(saleRefreshProvider); // Se re-ejecuta al crear venta
   final storeId = ref.watch(sessionControllerProvider).valueOrNull?.store?.id;
   if (storeId == null) return Future.value(null);
   final (from, to) = _range(ReportPeriod.thisMonth, DateTime.now());

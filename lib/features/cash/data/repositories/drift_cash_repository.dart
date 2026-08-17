@@ -250,6 +250,40 @@ class DriftCashRepository implements CashRepository {
   }
 
   @override
+  Stream<CashSessionSummary> watchSessionSummary(int sessionId) {
+    final query = database.select(database.cashMovements)
+      ..where((t) => t.cashSessionId.equals(sessionId));
+    return query.watch().map((rows) {
+      var opening = 0, cashSales = 0, cashIn = 0, cashOut = 0, adjustments = 0;
+      for (final m in rows) {
+        switch (CashMovementTypeX.fromName(m.movementType)) {
+          case CashMovementType.opening:
+            opening += m.amount;
+          case CashMovementType.sale:
+            cashSales += m.amount;
+          case CashMovementType.cashIn:
+            cashIn += m.amount;
+          case CashMovementType.cashOut:
+            cashOut += m.amount.abs();
+          case CashMovementType.adjustment:
+            adjustments += m.amount;
+          case CashMovementType.closing:
+            break;
+        }
+      }
+      final expected = rows.fold<int>(0, (sum, m) => sum + m.amount);
+      return CashSessionSummary(
+        opening: Money(opening),
+        cashSales: Money(cashSales),
+        cashIn: Money(cashIn),
+        cashOut: Money(cashOut),
+        adjustments: Money(adjustments),
+        expected: Money(expected),
+      );
+    });
+  }
+
+  @override
   Future<Result<Map<PaymentMethod, Money>>> salesByMethod(int sessionId) async {
     try {
       final query = database.select(database.payments).join([

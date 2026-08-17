@@ -39,6 +39,9 @@ abstract interface class CashRepository {
   /// Resumen del turno (apertura, ventas efectivo, ingresos, retiros, esperado).
   Future<Result<CashSessionSummary>> sessionSummary(int sessionId);
 
+  /// Resumen del turno como stream (se actualiza al agregar movimientos).
+  Stream<CashSessionSummary> watchSessionSummary(int sessionId);
+
   /// Desglose de las ventas del turno por método de pago.
   Future<Result<Map<PaymentMethod, Money>>> salesByMethod(int sessionId);
 

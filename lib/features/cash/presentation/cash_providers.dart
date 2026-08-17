@@ -15,13 +15,12 @@ final cashThresholdProvider = FutureProvider<int>((ref) async {
 });
 
 final cashSessionSummaryProvider =
-    FutureProvider<CashSessionSummary?>((ref) {
+    StreamProvider<CashSessionSummary?>((ref) {
   final sessionId = ref.watch(openCashSessionProvider).valueOrNull?.id;
-  if (sessionId == null) return Future.value(null);
+  if (sessionId == null) return Stream.value(null);
   return ref
       .watch(cashRepositoryProvider)
-      .sessionSummary(sessionId)
-      .then((r) => r.orNull);
+      .watchSessionSummary(sessionId);
 });
 
 final sessionMovementsProvider =

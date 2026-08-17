@@ -16,19 +16,26 @@ class CashHistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final users = ref.watch(usersProvider).valueOrNull ?? const <AppUser>[];
-    final sessions = ref.watch(sessionHistoryProvider).valueOrNull ?? const [];
+    final historyAsync = ref.watch(sessionHistoryProvider);
 
     String userName(int? id) =>
         users.where((u) => u.id == id).map((u) => u.fullName).firstOrNull ?? '—';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Historial de turnos')),
-      body: sessions.isEmpty
-          ? const MbEmptyState(
-              icon: Icons.history,
-              title: 'Sin turnos',
-              message: 'Los turnos de caja cerrados aparecerán aquí.',
-            )
+      body: historyAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => MbEmptyState(
+          icon: Icons.error_outline,
+          title: 'Error al cargar',
+          message: '$e',
+        ),
+        data: (sessions) => sessions.isEmpty
+            ? const MbEmptyState(
+                icon: Icons.history,
+                title: 'Sin turnos cerrados',
+                message: 'Los turnos de caja cerrados aparecerán aquí.',
+              )
           : ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: sessions.length,
@@ -74,6 +81,7 @@ class CashHistoryScreen extends ConsumerWidget {
                 );
               },
             ),
+      ),
     );
   }
 }

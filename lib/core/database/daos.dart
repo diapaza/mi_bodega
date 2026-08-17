@@ -464,7 +464,7 @@ class CashDao extends DatabaseAccessor<AppDatabase> with _$CashDaoMixin {
 
   Stream<List<CashSession>> watchSessions(int registerId, {int limit = 50}) {
     return (select(cashSessions)
-          ..where((t) => t.registerId.equals(registerId))
+          ..where((t) => t.registerId.equals(registerId) & t.status.equals('closed'))
           ..orderBy([(t) => OrderingTerm.desc(t.id)])
           ..limit(limit))
         .watch();
