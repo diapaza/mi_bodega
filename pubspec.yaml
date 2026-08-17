@@ -46,6 +46,7 @@ dependencies:
   go_router: ^17.5.0
   flutter_secure_storage: ^11.0.0
   collection: ^1.19.1
+  intl: ^0.20.2
   image_picker: ^1.2.3
   image: ^4.9.1
   gal: ^2.3.0
@@ -53,6 +54,7 @@ dependencies:
   googleapis: ^16.0.0
   cryptography: ^2.9.0
   http: ^1.6.0
+  flutter_animate: ^4.5.2
 
 dev_dependencies:
   flutter_test:

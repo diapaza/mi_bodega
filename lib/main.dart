@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart' show sqlite3;
@@ -20,27 +21,19 @@ import 'features/backup/data/services/backup_service.dart';
 import 'features/backup/data/services/google_drive_client.dart';
 
 Future<void> main() async {
-  print('[Main] Starting app...');
   WidgetsFlutterBinding.ensureInitialized();
-  print('[Main] Flutter binding initialized');
 
   final docs = await getApplicationDocumentsDirectory();
-  print('[Main] Documents dir: ${docs.path}');
   final databaseManager = await DatabaseManager.createProduction();
-  print('[Main] Database created');
 
   // Backup del archivo actual antes de que Drift lo migre a una versión mayor.
   await _backupBeforeMigration(databaseManager, docs);
 
   await databaseManager.init();
-  print('[Main] Database initialized');
   await BootstrapService(databaseManager.database).seedRolesAndPermissions();
-  print('[Main] Roles seeded');
 
   final deviceId = await _readOrCreateDeviceId(databaseManager);
-  print('[Main] Device ID: $deviceId');
-
-  print('[Main] runApp...');
+  await initializeDateFormatting('es');
   runApp(
     ProviderScope(
       overrides: [
