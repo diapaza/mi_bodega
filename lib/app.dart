@@ -10,7 +10,6 @@ class MiBodegaApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    print('[MiBodegaApp] build()');
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(
       title: 'MiBodega',

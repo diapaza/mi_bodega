@@ -54,7 +54,6 @@ class _ConversionsEditorState extends State<ConversionsEditor> {
 
   @override
   Widget build(BuildContext context) {
-    print('[ConversionsEditor] build() units=${widget.units.length} drafts=${_drafts.length}');
     final colors = context.colors;
     final theme = Theme.of(context);
 
@@ -68,7 +67,6 @@ class _ConversionsEditorState extends State<ConversionsEditor> {
               onPressed: widget.units.isEmpty
                   ? null
                   : () {
-                      print('[ConversionsEditor] Adding conversion, units: ${widget.units.length}');
                       setState(() {
                         _drafts.add(ConversionDraft(unitId: widget.units.first.id ?? 0));
                       });

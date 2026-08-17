@@ -43,25 +43,19 @@ class SessionController extends AsyncNotifier<SessionState> {
 
   @override
   Future<SessionState> build() async {
-    print('[SessionController] build() started');
     final storeResult = await ref.read(storeRepositoryProvider).getStore();
     _store = storeResult.orNull;
-    print('[SessionController] store: ${_store?.name ?? "null"}');
     if (_store == null) {
-      print('[SessionController] → pendingSetup');
       return const SessionState(status: SessionStatus.pendingSetup);
     }
     final restored = await ref.read(authServiceProvider).restoreSession();
     final user = restored.orNull;
-    print('[SessionController] restored user: ${user?.username ?? "null"}');
     if (user == null) {
-      print('[SessionController] → unauthenticated');
       return SessionState(
         status: SessionStatus.unauthenticated,
         store: _store,
       );
     }
-    print('[SessionController] → authenticated');
     return _authedState(user);
   }
 

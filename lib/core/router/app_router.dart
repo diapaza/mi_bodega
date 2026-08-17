@@ -69,7 +69,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         session.valueOrNull,
         state.matchedLocation,
       );
-      print('[Router] redirect ${state.matchedLocation} → $result (session: ${session.valueOrNull?.status})');
       return result;
     },
     routes: [
