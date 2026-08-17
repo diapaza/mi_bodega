@@ -5,6 +5,7 @@ import '../../../core/di/app_providers.dart';
 import '../../../core/money/money.dart';
 import '../../../core/security/permission_guard.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../domain/entities/cash.dart';
@@ -46,9 +47,7 @@ class _CashCloseDialogState extends ConsumerState<CashCloseDialog> {
         ensureAllowed(ref.read(sessionPermissionsProvider), 'cash.close');
     if (guard.isErr) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(guard.failure!.message)),
-        );
+        showMbSnack(context, guard.failure!.message);
       }
       return;
     }
@@ -57,9 +56,7 @@ class _CashCloseDialogState extends ConsumerState<CashCloseDialog> {
           ensureAllowed(ref.read(sessionPermissionsProvider), 'cash.authorize');
       if (authGuard.isErr) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(authGuard.failure!.message)),
-          );
+          showMbSnack(context, authGuard.failure!.message);
         }
         return;
       }
@@ -75,18 +72,12 @@ class _CashCloseDialogState extends ConsumerState<CashCloseDialog> {
     if (!mounted) return;
     setState(() => _saving = false);
     if (result.isErr) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.failure!.message)),
-      );
+      showMbSnack(context, result.failure!.message);
       return;
     }
     final s = result.orNull!;
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(
-        'Caja cerrada · diferencia ${s.difference?.format() ?? '—'}',
-      ),
-    ));
+    showMbSnack(context, 'Caja cerrada · diferencia ${s.difference?.format() ?? '—'}');
   }
 
   @override

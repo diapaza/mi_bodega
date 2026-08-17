@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/mb_button.dart';
+import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../domain/entities/inventory.dart';
@@ -62,17 +64,13 @@ class _AdjustmentScreenState extends ConsumerState<AdjustmentScreen> {
         ensureAllowed(ref.read(sessionPermissionsProvider), 'inventory.adjust');
     if (guard.isErr) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(guard.failure!.message)),
-        );
+        showMbSnack(context, guard.failure!.message);
       }
       return;
     }
     final qty = double.tryParse(_quantity.text) ?? 0;
     if (qty <= 0 || _reason.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ingresa la cantidad y el motivo.')),
-      );
+      showMbSnack(context, 'Ingresa la cantidad y el motivo.');
       return;
     }
     setState(() => _saving = true);
@@ -88,15 +86,11 @@ class _AdjustmentScreenState extends ConsumerState<AdjustmentScreen> {
     if (!mounted) return;
     if (result.isErr) {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.failure!.message)),
-      );
+      showMbSnack(context, result.failure!.message);
       return;
     }
     context.pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Stock ajustado: ${result.orNull!.afterQty}')),
-    );
+    showMbSnack(context, 'Stock ajustado: ${result.orNull!.afterQty}');
   }
 
   @override
@@ -119,12 +113,12 @@ class _AdjustmentScreenState extends ConsumerState<AdjustmentScreen> {
               if (product != null) ...[
                 Text(product.name, style: theme.textTheme.titleMedium),
                 Text(
-                  'Stock actual: ${_fmtQty(stock)}',
+                  'Stock actual: ${fmtQty(stock)}',
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Stock posterior: ${_fmtQty(after)}',
+                  'Stock posterior: ${fmtQty(after)}',
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: after < 0 ? colors.error : colors.success,
                   ),
@@ -175,7 +169,4 @@ class _AdjustmentScreenState extends ConsumerState<AdjustmentScreen> {
       ),
     );
   }
-
-  String _fmtQty(double v) =>
-      v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(2);
 }

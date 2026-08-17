@@ -8,7 +8,9 @@ import '../../../core/security/permission_guard.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
+import '../../../core/utils/formatters.dart';
 import '../../auth/domain/entities/auth.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../pos/presentation/pos_providers.dart';
@@ -65,9 +67,7 @@ class _ClosedState extends ConsumerWidget {
         ensureAllowed(ref.read(sessionPermissionsProvider), 'cash.open');
     if (guard.isErr) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(guard.failure!.message)),
-        );
+        showMbSnack(context, guard.failure!.message);
       }
       return;
     }
@@ -101,9 +101,7 @@ class _ClosedState extends ConsumerWidget {
         );
     if (!context.mounted) return;
     if (result.isErr) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.failure!.message)),
-      );
+      showMbSnack(context, result.failure!.message);
     }
   }
 
@@ -164,7 +162,7 @@ class _OpenState extends ConsumerWidget {
                         const MbBadge('Caja abierta', tone: MbBadgeTone.success),
                         const Spacer(),
                         Text(
-                          _fmtDate(session.openingDate),
+                          fmtDate(session.openingDate),
                           style: theme.textTheme.bodySmall,
                         ),
                       ],
@@ -180,45 +178,53 @@ class _OpenState extends ConsumerWidget {
                           ?.copyWith(color: colors.primary),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        if (canManage) ...[
+                    if (canManage)
+                      Row(
+                        children: [
                           Expanded(
-                            child: OutlinedButton.icon(
+                            child: OutlinedButton(
                               onPressed: () => _manualMovement(context, ref, CashMovementType.cashIn),
-                              icon: const Icon(Icons.south_west, size: 18),
-                              label: const Text('Ingreso'),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => _manualMovement(context, ref, CashMovementType.cashOut),
-                              icon: const Icon(Icons.north_east, size: 18),
-                              label: const Text('Retiro'),
-                            ),
-                          ),
-                        ],
-                        if (canClose) ...[
-                          const SizedBox(width: 8),
-                          Expanded(
-                            flex: 2,
-                            child: FilledButton.icon(
-                              onPressed: () => showDialog(
-                                context: context,
-                                builder: (_) => CashCloseDialog(
-                                  sessionId: session.id!,
-                                  summary: summaryAsync.valueOrNull,
-                                  canAuthorize: canAuthorize,
-                                ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: colors.success,
+                                minimumSize: const Size(0, 44),
                               ),
-                              icon: const Icon(Icons.lock_outline, size: 18),
-                              label: const Text('Cerrar caja'),
+                              child: const Text('Ingreso'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _manualMovement(context, ref, CashMovementType.cashOut),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: colors.error,
+                                minimumSize: const Size(0, 44),
+                              ),
+                              child: const Text('Retiro'),
                             ),
                           ),
                         ],
-                      ],
-                    ),
+                      ),
+                    if (canClose) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () => showDialog(
+                            context: context,
+                            builder: (_) => CashCloseDialog(
+                              sessionId: session.id!,
+                              summary: summaryAsync.valueOrNull,
+                              canAuthorize: canAuthorize,
+                            ),
+                          ),
+                          icon: const Icon(Icons.lock_outline, size: 18),
+                          label: const Text('Cerrar caja'),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 44),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -247,9 +253,7 @@ class _OpenState extends ConsumerWidget {
         ensureAllowed(ref.read(sessionPermissionsProvider), 'cash.manage');
     if (guard.isErr) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(guard.failure!.message)),
-        );
+        showMbSnack(context, guard.failure!.message);
       }
       return;
     }
@@ -285,9 +289,7 @@ class _OpenState extends ConsumerWidget {
     final note = noteCtrl.text.trim();
     if (note.isEmpty) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('El motivo es obligatorio.')),
-      );
+      showMbSnack(context, 'El motivo es obligatorio.');
       return;
     }
     final userId = ref.read(sessionControllerProvider).valueOrNull?.user?.id;
@@ -299,13 +301,8 @@ class _OpenState extends ConsumerWidget {
           note: note,
         );
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(result.isOk ? 'Movimiento registrado' : result.failure!.message),
-    ));
+    showMbSnack(context, result.isOk ? 'Movimiento registrado' : result.failure!.message);
   }
-
-  String _fmtDate(DateTime d) => '${d.day}/${d.month}/${d.year} '
-      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 }
 
 class _ByMethodBreakdown extends ConsumerWidget {

@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/domain/entities/auth.dart';
 import '../../auth/presentation/session_controller.dart';
@@ -136,7 +138,7 @@ class SalesListScreen extends ConsumerWidget {
                   );
                 }
                 return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   itemCount: sales.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, i) {
@@ -349,7 +351,7 @@ class _SaleCard extends ConsumerWidget {
           ],
         ),
         subtitle: Text(
-          '${_fmtDate(sale.saleDate)} · $sellerName · ${sale.paymentMethod.label}',
+          '${fmtDate(sale.saleDate)} · $sellerName · ${sale.paymentMethod.label}',
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -369,9 +371,6 @@ class _SaleCard extends ConsumerWidget {
       ),
     );
   }
-
-  String _fmtDate(DateTime d) => '${d.day}/${d.month}/${d.year} '
-      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 }
 
 class _SaleDetailSheet extends ConsumerWidget {
@@ -413,7 +412,7 @@ class _SaleDetailSheet extends ConsumerWidget {
                 ],
               ),
               Text(
-                _fmtDate(sale.saleDate),
+                fmtDate(sale.saleDate),
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: colors.onSurfaceVariant),
               ),
@@ -470,9 +469,7 @@ class _SaleDetailSheet extends ConsumerWidget {
         ensureAllowed(ref.read(sessionPermissionsProvider), 'sales.cancel');
     if (guard.isErr) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(guard.failure!.message)),
-        );
+        showMbSnack(context, guard.failure!.message);
       }
       return;
     }
@@ -497,9 +494,7 @@ class _SaleDetailSheet extends ConsumerWidget {
                 backgroundColor: Theme.of(ctx).colorScheme.error),
             onPressed: () {
               if (reasonCtrl.text.trim().isEmpty) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('El motivo es obligatorio.')),
-                );
+                showMbSnack(ctx, 'El motivo es obligatorio.');
                 return;
               }
               Navigator.pop(ctx, reasonCtrl.text.trim());
@@ -515,14 +510,9 @@ class _SaleDetailSheet extends ConsumerWidget {
         .read(saleRepositoryProvider)
         .cancelSale(sale.id!, userId, reason: confirmed);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(result.isOk ? 'Venta anulada' : result.failure!.message),
-    ));
+    showMbSnack(context, result.isOk ? 'Venta anulada' : result.failure!.message);
     if (result.isOk) Navigator.pop(context);
   }
-
-  String _fmtDate(DateTime d) => '${d.day}/${d.month}/${d.year} '
-      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 }
 
 class _ItemRow extends ConsumerWidget {
@@ -538,13 +528,10 @@ class _ItemRow extends ConsumerWidget {
       dense: true,
       contentPadding: EdgeInsets.zero,
       title: Text(product?.name ?? 'Producto #${item.productId}'),
-      subtitle: Text('${_fmtQty(item.quantity)} × ${item.unitPrice.format()}'),
+      subtitle: Text('${fmtQty(item.quantity)} × ${item.unitPrice.format()}'),
       trailing: Text(item.subtotal.format()),
     );
   }
-
-  String _fmtQty(double v) =>
-      v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(2);
 }
 
 class _InfoRow extends StatelessWidget {

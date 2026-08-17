@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
 import '../../../shared/widgets/mb_button.dart';
+import '../../../shared/widgets/mb_confirm_dialog.dart';
+import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/domain/entities/auth.dart';
 import '../../auth/presentation/session_controller.dart';
@@ -28,12 +30,20 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
   int? _originalRoleId;
   bool _active = true;
   bool _saving = false;
+  bool _dirty = false;
 
   bool get _isEditing => widget.userId != null;
+
+  void _markDirty() {
+    if (!_dirty) setState(() => _dirty = true);
+  }
 
   @override
   void initState() {
     super.initState();
+    _fullName.addListener(_markDirty);
+    _username.addListener(_markDirty);
+    _pin.addListener(_markDirty);
     if (_isEditing) {
       final users = ref.read(usersProvider).valueOrNull ?? const <AppUser>[];
       final user = users.where((u) => u.id == widget.userId).firstOrNull;
@@ -62,24 +72,18 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     );
     if (guard.isErr) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(guard.failure!.message)),
-        );
+        showMbSnack(context, guard.failure!.message);
       }
       return;
     }
     final fullName = _fullName.text.trim();
     final username = _username.text.trim();
     if (fullName.isEmpty || username.isEmpty || _roleId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Completa los campos obligatorios.')),
-      );
+      showMbSnack(context, 'Completa los campos obligatorios.');
       return;
     }
     if (!_isEditing && _pin.text.length < 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('El PIN debe tener al menos 4 dígitos.')),
-      );
+      showMbSnack(context, 'El PIN debe tener al menos 4 dígitos.');
       return;
     }
     setState(() => _saving = true);
@@ -104,9 +108,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     if (result.isErr) {
       setState(() => _saving = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.failure!.message)),
-        );
+        showMbSnack(context, result.failure!.message);
       }
       return;
     }
@@ -119,9 +121,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
         ensureAllowed(ref.read(sessionPermissionsProvider), 'users.reset_pin');
     if (guard.isErr) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(guard.failure!.message)),
-        );
+        showMbSnack(context, guard.failure!.message);
       }
       return;
     }
@@ -152,9 +152,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     final repo = ref.read(authRepositoryProvider);
     final res = await repo.resetPin(widget.userId!, newPin);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(res.isOk ? 'PIN actualizado' : res.failure!.message),
-    ));
+    showMbSnack(context, res.isOk ? 'PIN actualizado' : res.failure!.message);
   }
 
   @override
@@ -164,76 +162,92 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     final canDisable = session?.can('users.disable') ?? false;
     final roles = ref.watch(rolesProvider).valueOrNull ?? const <Role>[];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? 'Editar usuario' : 'Nuevo usuario'),
-        actions: [
-          if (_isEditing && canResetPin)
-            IconButton(
-              tooltip: 'Restablecer PIN',
-              icon: const Icon(Icons.password),
-              onPressed: _resetPin,
-            ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              MbTextField(
-                controller: _fullName,
-                label: 'Nombre completo *',
+    return PopScope(
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop || !_dirty) return;
+        final confirmed = await showMbConfirm(
+          context,
+          title: 'Cambios sin guardar',
+          message: 'Tienes cambios sin guardar. ¿Deseas salir?',
+          confirmLabel: 'Salir',
+          cancelLabel: 'Quedarme',
+        );
+        if (confirmed == true && context.mounted) {
+          context.pop();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_isEditing ? 'Editar usuario' : 'Nuevo usuario'),
+          actions: [
+            if (_isEditing && canResetPin)
+              IconButton(
+                tooltip: 'Restablecer PIN',
+                icon: const Icon(Icons.password),
+                onPressed: _resetPin,
               ),
-              const SizedBox(height: 12),
-              MbTextField(
-                controller: _username,
-                label: 'Usuario *',
-                textCapitalization: TextCapitalization.none,
-              ),
-              if (!_isEditing) ...[
+          ],
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                MbTextField(
+                  controller: _fullName,
+                  label: 'Nombre completo *',
+                ),
                 const SizedBox(height: 12),
                 MbTextField(
-                  controller: _pin,
-                  label: 'PIN (4-6 dígitos) *',
-                  keyboardType: TextInputType.number,
-                  obscureText: true,
-                  maxLength: 6,
+                  controller: _username,
+                  label: 'Usuario *',
+                  textCapitalization: TextCapitalization.none,
                 ),
-              ],
-              const SizedBox(height: 12),
-              DropdownButtonFormField<int>(
-                initialValue: _roleId,
-                decoration: const InputDecoration(labelText: 'Rol'),
-                items: [
-                  for (final r in roles.where((r) => r.active))
-                    DropdownMenuItem(value: r.id, child: Text(r.name)),
+                if (!_isEditing) ...[
+                  const SizedBox(height: 12),
+                  MbTextField(
+                    controller: _pin,
+                    label: 'PIN (4-6 dígitos) *',
+                    keyboardType: TextInputType.number,
+                    obscureText: true,
+                    maxLength: 6,
+                  ),
                 ],
-                onChanged: (v) => setState(() => _roleId = v),
-              ),
-              if (_isEditing && canDisable) ...[
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Activo'),
-                  value: _active,
-                  onChanged: (v) async {
-                    setState(() => _active = v);
-                    await ref
-                        .read(authRepositoryProvider)
-                        .setActive(widget.userId!, v);
-                  },
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int>(
+                  initialValue: _roleId,
+                  decoration: const InputDecoration(labelText: 'Rol'),
+                  items: [
+                    for (final r in roles.where((r) => r.active))
+                      DropdownMenuItem(value: r.id, child: Text(r.name)),
+                  ],
+                  onChanged: (v) => setState(() => _roleId = v),
+                ),
+                if (_isEditing && canDisable) ...[
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Activo'),
+                    value: _active,
+                    onChanged: (v) async {
+                      setState(() => _active = v);
+                      await ref
+                          .read(authRepositoryProvider)
+                          .setActive(widget.userId!, v);
+                    },
+                  ),
+                ],
+                const SizedBox(height: 24),
+                MbButton(
+                  label: _isEditing ? 'Guardar cambios' : 'Crear usuario',
+                  icon: Icons.check,
+                  loading: _saving,
+                  onPressed: _saving ? null : _save,
                 ),
               ],
-              const SizedBox(height: 24),
-              MbButton(
-                label: _isEditing ? 'Guardar cambios' : 'Crear usuario',
-                icon: Icons.check,
-                loading: _saving,
-                onPressed: _saving ? null : _save,
-              ),
-            ],
+            ),
           ),
         ),
       ),

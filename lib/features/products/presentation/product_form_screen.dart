@@ -7,6 +7,9 @@ import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
 import '../../../core/money/money.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
+import '../../../shared/widgets/mb_confirm_dialog.dart';
+import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../catalog/domain/entities/catalog.dart';
@@ -51,15 +54,30 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   List<ConversionDraft> _conversions = [];
   bool _loaded = false;
   bool _saving = false;
+  bool _dirty = false;
   int _currentStep = 0;
 
   static const _totalSteps = 5;
 
   bool get _isEditing => widget.productId != null;
 
+  void _markDirty() {
+    if (!_dirty) setState(() => _dirty = true);
+  }
+
   @override
   void initState() {
     super.initState();
+    _name.addListener(_markDirty);
+    _sku.addListener(_markDirty);
+    _barcode.addListener(_markDirty);
+    _description.addListener(_markDirty);
+    _purchase.addListener(_markDirty);
+    _sale.addListener(_markDirty);
+    _stockMin.addListener(_markDirty);
+    _stockMax.addListener(_markDirty);
+    _unitsPerPkg.addListener(_markDirty);
+    _purchasedQty.addListener(_markDirty);
     if (_isEditing) {
       _load();
     } else {
@@ -79,13 +97,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       _description.text = product.description ?? '';
       _purchase.text = (product.purchasePrice.cents / 100).toStringAsFixed(2);
       _sale.text = (product.salePrice.cents / 100).toStringAsFixed(2);
-      _stockMin.text = _fmtQty(product.stockMin);
-      _stockMax.text = product.stockMax == null ? '' : _fmtQty(product.stockMax!);
+      _stockMin.text = fmtQty(product.stockMin);
+      _stockMax.text = product.stockMax == null ? '' : fmtQty(product.stockMax!);
       _categoryId = product.categoryId;
       _brandId = product.brandId;
       _unitId = product.baseUnitId;
       _purchaseUnitId = product.purchaseUnitId;
-      _unitsPerPkg.text = _fmtQty(product.saleUnitsPerPurchaseUnit);
+      _unitsPerPkg.text = fmtQty(product.saleUnitsPerPurchaseUnit);
       _photoPath = product.photoPath;
       _originalPhotoPath = product.photoPath;
       _conversions = [
@@ -101,9 +119,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     }
     if (mounted) setState(() => _loaded = true);
   }
-
-  String _fmtQty(double v) =>
-      v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(2);
 
   @override
   void dispose() {
@@ -122,17 +137,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     switch (_currentStep) {
       case 0:
         if (_name.text.trim().isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('El nombre es obligatorio.')),
-          );
+          showMbSnack(context, 'El nombre es obligatorio.');
           return false;
         }
         return true;
       case 1:
         if (_unitId == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('La unidad base de venta es obligatoria.')),
-          );
+          showMbSnack(context, 'La unidad base de venta es obligatoria.');
           return false;
         }
         return true;
@@ -173,9 +184,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         ensureAllowed(ref.read(sessionPermissionsProvider), 'products.edit');
     if (guard.isErr) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(guard.failure!.message)),
-        );
+        showMbSnack(context, guard.failure!.message);
       }
       return;
     }
@@ -202,16 +211,12 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     );
     if (guard.isErr) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(guard.failure!.message)),
-        );
+        showMbSnack(context, guard.failure!.message);
       }
       return;
     }
     if (_name.text.trim().isEmpty || _unitId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nombre y unidad son obligatorios.')),
-      );
+      showMbSnack(context, 'Nombre y unidad son obligatorios.');
       return;
     }
     setState(() => _saving = true);
@@ -220,9 +225,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     if (storeId == null) {
       if (mounted) {
         setState(() => _saving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sesión no disponible.')),
-        );
+        showMbSnack(context, 'Sesión no disponible.');
       }
       return;
     }
@@ -267,9 +270,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     if (!mounted) return;
     if (result.isErr) {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.failure!.message)),
-      );
+      showMbSnack(context, result.failure!.message);
       return;
     }
     if (_originalPhotoPath != null && _originalPhotoPath != _photoPath) {
@@ -283,9 +284,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         ensureAllowed(ref.read(sessionPermissionsProvider), 'products.disable');
     if (guard.isErr) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(guard.failure!.message)),
-        );
+        showMbSnack(context, guard.failure!.message);
       }
       return;
     }
@@ -295,20 +294,12 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final message = canHard
         ? 'Este producto no tiene historial y se eliminará definitivamente.'
         : 'Este producto tiene historial; se desactivará (soft delete).';
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar producto'),
-        content: Text(message),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+    final confirmed = await showMbConfirm(
+      context,
+      title: 'Eliminar producto',
+      message: message,
+      confirmLabel: 'Eliminar',
+      isDestructive: true,
     );
     if (confirmed != true || !mounted) return;
     final result = await repo.deleteProduct(widget.productId!);
@@ -319,9 +310,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       }
       if (mounted) context.pop();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.failure!.message)),
-      );
+      showMbSnack(context, result.failure!.message);
     }
   }
 
@@ -354,21 +343,36 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         ? units.where((u) => u.id == _unitId).map((u) => u.name).firstOrNull ?? 'unidad'
         : null;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? 'Editar producto' : 'Nuevo producto'),
-        actions: [
-          if (_isEditing && canDisable)
-            IconButton(
-              tooltip: 'Eliminar / desactivar',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _delete,
-            ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
+    return PopScope(
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop || !_dirty) return;
+        final confirmed = await showMbConfirm(
+          context,
+          title: 'Cambios sin guardar',
+          message: 'Tienes cambios sin guardar. ¿Deseas salir?',
+          confirmLabel: 'Salir',
+          cancelLabel: 'Quedarme',
+        );
+        if (confirmed == true && context.mounted) {
+          context.pop();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_isEditing ? 'Editar producto' : 'Nuevo producto'),
+          actions: [
+            if (_isEditing && canDisable)
+              IconButton(
+                tooltip: 'Eliminar / desactivar',
+                icon: const Icon(Icons.delete_outline),
+                onPressed: _delete,
+              ),
+          ],
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
             ProductFormStepIndicator(
               currentStep: _currentStep,
               totalSteps: _totalSteps,
@@ -483,6 +487,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -773,29 +778,21 @@ class _StepStock extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _ProductBriefHeader(photoPath: photoPath, name: productName),
-          Row(
-            children: [
-              Expanded(
-                child: MbTextField(
-                  controller: stockMin,
-                  label: 'Stock mínimo (unidades de venta)',
-                  keyboardType: TextInputType.number,
-                  clearOnFocus: true,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: MbTextField(
-                  controller: stockMax,
-                  label: 'Stock máximo (unidades de venta)',
-                  keyboardType: TextInputType.number,
-                  clearOnFocus: true,
-                ),
-              ),
-            ],
+          MbTextField(
+            controller: stockMin,
+            label: 'Stock mínimo (unidades de venta)',
+            keyboardType: TextInputType.number,
+            clearOnFocus: true,
+          ),
+          const SizedBox(height: 12),
+          MbTextField(
+            controller: stockMax,
+            label: 'Stock máximo (unidades de venta)',
+            keyboardType: TextInputType.number,
+            clearOnFocus: true,
           ),
           if (!isEditing) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
             MbTextField(
               controller: purchasedQty,
               label: purchaseUnitName != null

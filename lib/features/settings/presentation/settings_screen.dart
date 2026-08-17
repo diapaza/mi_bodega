@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../shared/widgets/mb_button.dart';
+import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../store/domain/entities/store.dart';
 
@@ -70,8 +71,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       updatedAt: DateTime.now(),
     ));
     if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Tienda actualizada')));
+      showMbSnack(context, 'Tienda actualizada');
     }
   }
 
@@ -162,9 +162,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       await ref.read(backupCoordinatorProvider)
                           .putSetting(SettingKeys.requirePinOnStart, '$v');
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Configuración guardada')),
-                        );
+                        showMbSnack(context, 'Configuración guardada');
                       }
                     },
                   ),
@@ -190,9 +188,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       await ref.read(backupCoordinatorProvider)
                           .putSetting(SettingKeys.autoBackup, '$v');
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Configuración guardada')),
-                        );
+                        showMbSnack(context, 'Configuración guardada');
                       }
                     },
                   ),
@@ -205,9 +201,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       await ref.read(backupCoordinatorProvider)
                           .putSetting(SettingKeys.backupEncryption, '$v');
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Configuración guardada')),
-                        );
+                        showMbSnack(context, 'Configuración guardada');
                       }
                     },
                   ),

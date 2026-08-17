@@ -8,12 +8,16 @@ import '../../../core/money/money.dart';
 import '../../../core/security/permission_guard.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_button.dart';
+import '../../../shared/widgets/mb_confirm_dialog.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_keypad.dart';
+import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../catalog/presentation/catalog_providers.dart';
 import '../../products/presentation/products_providers.dart';
 import '../../sales/domain/entities/sale.dart';
+import '../../reports/presentation/reports_providers.dart';
 import 'cart_controller.dart';
 import 'pos_providers.dart';
 
@@ -28,6 +32,7 @@ class CartSheet extends ConsumerStatefulWidget {
 class _CartSheetState extends ConsumerState<CartSheet> {
   bool _showPayment = false;
   bool _saving = false;
+  bool _keypadExpanded = false;
 
   // Payment fields
   bool _showCustomer = false;
@@ -111,15 +116,14 @@ class _CartSheetState extends ConsumerState<CartSheet> {
     if (!mounted) return;
     if (result.isErr) {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.failure!.message)),
-      );
+      showMbSnack(context, result.failure!.message);
       return;
     }
 
     final detail = result.orNull!;
     HapticFeedback.heavyImpact();
     ref.read(cartProvider.notifier).clear();
+    ref.read(saleRefreshProvider.notifier).state++;
     Navigator.of(context).pop(detail);
   }
 
@@ -251,28 +255,19 @@ class _CartSheetState extends ConsumerState<CartSheet> {
     );
   }
 
-  void _confirmClear(BuildContext context) {
+  void _confirmClear(BuildContext context) async {
     final cart = ref.read(cartProvider);
     if (cart.isEmpty) return;
-    showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Vaciar carrito'),
-        content: Text('Se eliminarán ${cart.lines.length} producto${cart.lines.length == 1 ? '' : 's'} del carrito.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Vaciar'),
-          ),
-        ],
-      ),
-    ).then((confirmed) {
-      if (confirmed == true) {
-        ref.read(cartProvider.notifier).clear();
-      }
-    });
+    final confirmed = await showMbConfirm(
+      context,
+      title: 'Vaciar carrito',
+      message: 'Se eliminarán ${cart.lines.length} producto${cart.lines.length == 1 ? '' : 's'} del carrito.',
+      confirmLabel: 'Vaciar',
+      isDestructive: true,
+    );
+    if (confirmed == true) {
+      ref.read(cartProvider.notifier).clear();
+    }
   }
 
   Widget _buildPaymentSection(
@@ -331,7 +326,7 @@ class _CartSheetState extends ConsumerState<CartSheet> {
               ],
             ),
             if (isCash) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
@@ -341,7 +336,7 @@ class _CartSheetState extends ConsumerState<CartSheet> {
                         Text('Recibido', style: theme.textTheme.bodySmall),
                         Text(
                           cart.received.format(),
-                          style: theme.textTheme.headlineMedium
+                          style: theme.textTheme.headlineSmall
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                       ],
@@ -356,7 +351,7 @@ class _CartSheetState extends ConsumerState<CartSheet> {
                           missing.isZero
                               ? cart.change.format()
                               : 'Faltan ${missing.format()}',
-                          style: theme.textTheme.headlineMedium?.copyWith(
+                          style: theme.textTheme.headlineSmall?.copyWith(
                             color: missing.isZero ? colors.success : colors.error,
                             fontWeight: FontWeight.w700,
                           ),
@@ -381,91 +376,34 @@ class _CartSheetState extends ConsumerState<CartSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              _Keypad(
-                onKey: _key,
-                onBackspace: _backspace,
-                onClear: () => setState(() {
-                  _receivedText = '';
-                  ref.read(cartProvider.notifier).setReceived(Money.zero());
-                }),
-                receivedText: _receivedText,
-              ),
+              const SizedBox(height: 8),
+              if (!_keypadExpanded)
+                TextButton.icon(
+                  onPressed: () => setState(() => _keypadExpanded = true),
+                  icon: const Icon(Icons.dialpad, size: 18),
+                  label: const Text('Ingresar monto manual'),
+                )
+              else ...[
+                MbKeypad(
+                  onKey: _key,
+                  onBackspace: _backspace,
+                  onClear: () => setState(() {
+                    _receivedText = '';
+                    ref.read(cartProvider.notifier).setReceived(Money.zero());
+                  }),
+                  receivedText: _receivedText,
+                ),
+                TextButton.icon(
+                  onPressed: () => setState(() => _keypadExpanded = false),
+                  icon: const Icon(Icons.keyboard_hide, size: 18),
+                  label: const Text('Ocultar teclado'),
+                ),
+              ],
             ],
             const SizedBox(height: 8),
           ],
         ),
       ),
-    );
-  }
-}
-
-// --- Keypad ---
-class _Keypad extends StatelessWidget {
-  final String receivedText;
-  final ValueChanged<String> onKey;
-  final VoidCallback onBackspace;
-  final VoidCallback onClear;
-
-  const _Keypad({
-    required this.receivedText,
-    required this.onKey,
-    required this.onBackspace,
-    required this.onClear,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = context.colors;
-    final keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'];
-    return Column(
-      children: [
-        Text(
-          receivedText.isEmpty ? '—' : 'S/$receivedText',
-          style: theme.textTheme.headlineSmall?.copyWith(
-            color: colors.primary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 8),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 3,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 1.8,
-          children: [
-            for (final k in keys)
-              Material(
-                color: colors.surfaceContainer,
-                borderRadius: BorderRadius.circular(10),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: () {
-                    if (k == 'C') {
-                      onClear();
-                    } else if (k == '⌫') {
-                      onBackspace();
-                    } else {
-                      onKey(k);
-                    }
-                  },
-                  child: Center(
-                    child: k == '⌫'
-                        ? const Icon(Icons.backspace_outlined)
-                        : Text(
-                            k,
-                            style: theme.textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ],
     );
   }
 }
@@ -489,9 +427,7 @@ class _CartLineRow extends ConsumerWidget {
     );
     if (guard.isErr) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(guard.failure!.message)),
-        );
+        showMbSnack(context, guard.failure!.message);
       }
       return;
     }

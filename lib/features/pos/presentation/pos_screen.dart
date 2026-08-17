@@ -8,6 +8,7 @@ import '../../../core/di/app_providers.dart';
 import '../../../core/money/money.dart';
 import '../../../core/security/permission_guard.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../cash/domain/entities/cash.dart';
@@ -40,7 +41,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
 
   void _onSearch(String value) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 250), () {
+    _debounce = Timer(const Duration(milliseconds: 300), () {
       ref.read(posSearchProvider.notifier).state = value.trim();
     });
   }
@@ -49,9 +50,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     final added = ref.read(cartProvider.notifier).add(item);
     if (added) HapticFeedback.selectionClick();
     if (!added) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Stock insuficiente de ${item.product.name}'),
-      ));
+      showMbSnack(context, 'Stock insuficiente de ${item.product.name}');
     }
   }
 
@@ -60,9 +59,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         ensureAllowed(ref.read(sessionPermissionsProvider), 'cash.open');
     if (guard.isErr) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(guard.failure!.message)),
-        );
+        showMbSnack(context, guard.failure!.message);
       }
       return;
     }
@@ -93,9 +90,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         );
     if (!mounted) return;
     if (result.isErr) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.failure!.message)),
-      );
+      showMbSnack(context, result.failure!.message);
     }
   }
 
@@ -104,9 +99,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         ensureAllowed(ref.read(sessionPermissionsProvider), 'cash.close');
     if (guard.isErr) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(guard.failure!.message)),
-        );
+        showMbSnack(context, guard.failure!.message);
       }
       return;
     }
@@ -148,13 +141,9 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     if (!mounted) return;
     final r = result.orNull;
     if (r != null && r.difference != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Caja cerrada · diferencia ${r.difference!.format()}'),
-      ));
+      showMbSnack(context, 'Caja cerrada · diferencia ${r.difference!.format()}');
     } else if (result.isErr) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.failure!.message)),
-      );
+      showMbSnack(context, result.failure!.message);
     }
   }
 

@@ -6,6 +6,7 @@ import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_button.dart';
+import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/domain/entities/auth.dart';
 import '../../auth/domain/entities/permission_catalog.dart';
@@ -72,9 +73,7 @@ class _RoleEditScreenState extends ConsumerState<RoleEditScreen> {
         ensureAllowed(ref.read(sessionPermissionsProvider), 'roles.manage');
     if (guard.isErr) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(guard.failure!.message)),
-        );
+        showMbSnack(context, guard.failure!.message);
       }
       return;
     }
@@ -106,9 +105,7 @@ class _RoleEditScreenState extends ConsumerState<RoleEditScreen> {
     if (!mounted) return;
     if (result.isErr) {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.failure!.message)),
-      );
+      showMbSnack(context, result.failure!.message);
       return;
     }
     context.pop();
@@ -157,15 +154,12 @@ class _RoleEditScreenState extends ConsumerState<RoleEditScreen> {
                         value: _active,
                         onChanged: readOnly
                             ? null
-                            : (v) async {
+                              : (v) async {
                                 final guard = ensureAllowed(ref
                                     .read(sessionPermissionsProvider), 'roles.manage');
                                 if (guard.isErr) {
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                          content: Text(guard.failure!.message)),
-                                    );
+                                    showMbSnack(context, guard.failure!.message);
                                   }
                                   return;
                                 }
