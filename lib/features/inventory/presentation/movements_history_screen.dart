@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../auth/presentation/session_controller.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
 import '../domain/entities/inventory.dart';
@@ -101,7 +102,7 @@ class _MovementTile extends StatelessWidget {
                 MbBadge(m.type.label, tone: tone),
                 const Spacer(),
                 Text(
-                  _fmtDateTime(m.createdAt),
+                  fmtDateTime(m.createdAt),
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: colors.onSurfaceVariant),
                 ),
@@ -116,8 +117,8 @@ class _MovementTile extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    '${isIn ? '+' : ''}${_fmtQty(m.quantity)} '
-                    '→ ${_fmtQty(m.afterQty)}',
+                    '${isIn ? '+' : ''}${fmtQty(m.quantity)} '
+                    '→ ${fmtQty(m.afterQty)}',
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: isIn ? colors.success : colors.error,
                       fontWeight: FontWeight.w700,
@@ -125,7 +126,7 @@ class _MovementTile extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'antes ${_fmtQty(m.beforeQty)}',
+                  'antes ${fmtQty(m.beforeQty)}',
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: colors.onSurfaceVariant),
                 ),
@@ -144,14 +145,5 @@ class _MovementTile extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _fmtQty(double v) =>
-      v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(2);
-
-  String _fmtDateTime(DateTime d) {
-    final hh = d.hour.toString().padLeft(2, '0');
-    final mm = d.minute.toString().padLeft(2, '0');
-    return '${d.day}/${d.month}/${d.year} $hh:$mm';
   }
 }

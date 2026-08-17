@@ -6,6 +6,7 @@ import 'package:mi_bodega/core/error/failures.dart';
 import 'package:mi_bodega/core/error/result.dart';
 import 'package:mi_bodega/core/ids/sale_number_generator.dart';
 import 'package:mi_bodega/core/money/money.dart';
+import 'package:mi_bodega/core/utils/formatters.dart';
 import 'package:mi_bodega/features/cash/domain/entities/cash.dart';
 import 'package:mi_bodega/features/inventory/domain/entities/inventory.dart';
 import 'package:mi_bodega/features/products/domain/entities/product.dart';
@@ -106,7 +107,7 @@ class DriftSaleRepository implements SaleRepository {
             throw AbortTransaction(Failure(
               code: FailureCode.insufficientStock,
               message: 'Stock insuficiente de ${product.name} '
-                  '(disponible: ${_fmtQty(stock)}).',
+                  '(disponible: ${fmtQty(stock)}).',
             ));
           }
           final unitPrice = input.unitPrice.cents;
@@ -494,10 +495,6 @@ class DriftSaleRepository implements SaleRepository {
       reference: p.reference,
       userId: p.userId,
     );
-  }
-
-  static String _fmtQty(double q) {
-    return q.toStringAsFixed(q == q.roundToDouble() ? 0 : 2);
   }
 }
 
