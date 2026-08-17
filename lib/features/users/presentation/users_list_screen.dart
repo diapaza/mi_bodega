@@ -7,7 +7,9 @@ import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_badge.dart';
+import '../../../shared/widgets/mb_confirm_dialog.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_snackbar.dart';
 import '../../auth/domain/entities/auth.dart';
 import '../../auth/presentation/session_controller.dart';
 import 'users_providers.dart';
@@ -124,15 +126,26 @@ class MbUserCard extends ConsumerWidget {
                   final guard = ensureAllowed(
                       ref.read(sessionPermissionsProvider), 'users.disable');
                   if (guard.isErr) {
-                    _showSnack(context, guard.failure!.message);
+                    showMbSnack(context, guard.failure!.message);
                     return;
                   }
+                  final confirmed = await showMbConfirm(
+                    context,
+                    title: user.active ? 'Desactivar usuario' : 'Activar usuario',
+                    message: user.active
+                        ? '¿Deseas desactivar a "${user.fullName}"?'
+                        : '¿Deseas activar a "${user.fullName}"?',
+                    confirmLabel: user.active ? 'Desactivar' : 'Activar',
+                    isDestructive: user.active,
+                  );
+                  if (confirmed != true) return;
                   final repo = ref.read(authRepositoryProvider);
                   final res = await repo.setActive(user.id!, !user.active);
                   res.fold(
-                    (_) => _showSnack(context,
-                        user.active ? 'Usuario desactivado' : 'Usuario activado'),
-                    (f) => _showSnack(context, f.message),
+                    (_) => showMbSnack(context,
+                        user.active ? 'Usuario desactivado' : 'Usuario activado',
+                        variant: MbSnackVariant.success),
+                    (f) => showMbSnack(context, f.message, variant: MbSnackVariant.error),
                   );
                 }
               },
@@ -147,10 +160,5 @@ class MbUserCard extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  void _showSnack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
   }
 }

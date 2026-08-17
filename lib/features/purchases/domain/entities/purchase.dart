@@ -25,6 +25,30 @@ class Supplier {
     required this.createdAt,
     required this.updatedAt,
   });
+
+  Supplier copyWith({
+    int? id,
+    int? storeId,
+    String? name,
+    String? rucDni,
+    String? phone,
+    String? address,
+    bool? active,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Supplier(
+      id: id ?? this.id,
+      storeId: storeId ?? this.storeId,
+      name: name ?? this.name,
+      rucDni: rucDni ?? this.rucDni,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
+      active: active ?? this.active,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }
 
 enum PurchaseStatus { pending, completed, cancelled }
