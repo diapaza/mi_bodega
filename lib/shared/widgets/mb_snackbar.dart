@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-
-import '../../core/theme/app_colors.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
+import 'package:toastification/toastification.dart';
 
 enum MbSnackVariant { success, error, info, warning }
 
-/// Muestra un snackbar con estilo semántico.
+/// Muestra una notificación moderna con toastification.
 void showMbSnack(
   BuildContext context,
   String message, {
@@ -12,32 +12,23 @@ void showMbSnack(
   String? actionLabel,
   VoidCallback? onAction,
 }) {
-  final colors = context.colors;
-  final bg = switch (variant) {
-    MbSnackVariant.success => colors.success,
-    MbSnackVariant.error => colors.error,
-    MbSnackVariant.info => colors.info,
-    MbSnackVariant.warning => colors.warning,
+  final (type, icon) = switch (variant) {
+    MbSnackVariant.success => (ToastificationType.success, LucideIcons.circle_check),
+    MbSnackVariant.error => (ToastificationType.error, LucideIcons.circle_x),
+    MbSnackVariant.info => (ToastificationType.info, LucideIcons.info),
+    MbSnackVariant.warning => (ToastificationType.warning, LucideIcons.triangle_alert),
   };
-  final fg = switch (variant) {
-    MbSnackVariant.success => colors.onSuccess,
-    MbSnackVariant.error => colors.onError,
-    MbSnackVariant.info => colors.onInfo,
-    MbSnackVariant.warning => colors.onWarning,
-  };
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        backgroundColor: bg,
-        content: Text(message, style: TextStyle(color: fg)),
-        action: actionLabel != null
-            ? SnackBarAction(
-                label: actionLabel,
-                textColor: fg,
-                onPressed: onAction ?? () {},
-              )
-            : null,
-      ),
-    );
+
+  toastification.show(
+    context: context,
+    type: type,
+    style: ToastificationStyle.fillColored,
+    title: Text(message),
+    icon: Icon(icon, color: Colors.white),
+    alignment: Alignment.topCenter,
+    autoCloseDuration: const Duration(seconds: 3),
+    animationDuration: const Duration(milliseconds: 300),
+    borderRadius: BorderRadius.circular(10),
+    closeButtonShowType: CloseButtonShowType.none,
+  );
 }
