@@ -55,6 +55,12 @@ dependencies:
   cryptography: ^2.9.0
   http: ^1.6.0
   flutter_animate: ^4.5.2
+  google_fonts: ^6.2.1
+  flutter_lucide: ^1.31.0
+  skeletonizer: ^1.4.0
+  flutter_svg: ^2.0.17
+  gap: ^3.0.1
+  toastification: ^2.3.0
 
 dev_dependencies:
   flutter_test:

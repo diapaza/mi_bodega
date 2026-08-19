@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
@@ -9,6 +10,44 @@ class AppTheme {
   static ThemeData light() => _build(AppColors.light);
 
   static ThemeData dark() => _build(AppColors.dark);
+
+  static TextTheme _applyGoogleFonts(TextTheme base, Color onSurface) {
+    return GoogleFonts.poppinsTextTheme(base)
+        .apply(bodyColor: onSurface, displayColor: onSurface)
+        .copyWith(
+          headlineMedium: GoogleFonts.poppins(
+            fontSize: base.headlineMedium?.fontSize,
+            fontWeight: FontWeight.w700,
+            color: onSurface,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+          titleLarge: GoogleFonts.poppins(
+            fontSize: base.titleLarge?.fontSize,
+            fontWeight: FontWeight.w700,
+            color: onSurface,
+          ),
+          titleMedium: GoogleFonts.poppins(
+            fontSize: base.titleMedium?.fontSize,
+            fontWeight: FontWeight.w600,
+            color: onSurface,
+          ),
+          titleSmall: GoogleFonts.poppins(
+            fontSize: base.titleSmall?.fontSize,
+            fontWeight: FontWeight.w600,
+            color: onSurface,
+          ),
+          labelLarge: GoogleFonts.poppins(
+            fontSize: base.labelLarge?.fontSize,
+            fontWeight: FontWeight.w600,
+            color: onSurface,
+          ),
+          labelMedium: GoogleFonts.poppins(
+            fontSize: base.labelMedium?.fontSize,
+            fontWeight: FontWeight.w600,
+            color: onSurface,
+          ),
+        );
+  }
 
   static ThemeData _build(AppColors c) {
     final colorScheme = ColorScheme.fromSeed(
@@ -45,24 +84,7 @@ class AppTheme {
       scaffoldBackgroundColor: c.background,
     );
 
-    final textTheme = base.textTheme
-        .apply(bodyColor: c.onSurface, displayColor: c.onSurface)
-        .copyWith(
-          headlineMedium: base.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-          titleLarge: base.textTheme.titleLarge
-              ?.copyWith(fontWeight: FontWeight.w700),
-          titleMedium: base.textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.w600),
-          titleSmall: base.textTheme.titleSmall
-              ?.copyWith(fontWeight: FontWeight.w600),
-          labelLarge: base.textTheme.labelLarge
-              ?.copyWith(fontWeight: FontWeight.w600),
-          labelMedium: base.textTheme.labelMedium
-              ?.copyWith(fontWeight: FontWeight.w600),
-        );
+    final textTheme = _applyGoogleFonts(base.textTheme, c.onSurface);
 
     return base.copyWith(
       textTheme: textTheme,
@@ -73,6 +95,11 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
+        titleTextStyle: GoogleFonts.poppins(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: c.onSurface,
+        ),
       ),
       cardTheme: CardThemeData(
         color: c.surface,
