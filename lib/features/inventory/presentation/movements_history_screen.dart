@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 import '../../auth/presentation/session_controller.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../domain/entities/inventory.dart';
 import 'inventory_providers.dart';
 
@@ -33,18 +35,18 @@ class MovementsHistoryScreen extends ConsumerWidget {
           if (!global && (ref.watch(sessionControllerProvider).valueOrNull?.can('inventory.adjust') ?? false))
             IconButton(
               tooltip: 'Ajustar stock',
-              icon: const Icon(Icons.tune),
+              icon: const Icon(LucideIcons.sliders_horizontal),
               onPressed: () => context.push('/inventory/$productId/adjust'),
             ),
         ],
       ),
       body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: MbLoading()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (movements) {
           if (movements.isEmpty) {
             return const MbEmptyState(
-              icon: Icons.receipt_long_outlined,
+              icon: LucideIcons.receipt,
               title: 'Sin movimientos',
               message: 'Las entradas y salidas de stock aparecerán aquí.',
             );
@@ -125,11 +127,12 @@ class _MovementTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text(
+                Flexible(child: Text(
                   'antes ${fmtQty(m.beforeQty)}',
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: colors.onSurfaceVariant),
-                ),
+                )),
               ],
             ),
             const SizedBox(height: 4),

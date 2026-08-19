@@ -232,15 +232,16 @@ class _PriceRecommenderState extends State<PriceRecommender> {
                       : colors.error,
                 ),
                 const SizedBox(width: 6),
-                Text(
+                Flexible(child: Text(
                   'Ganancia: ${profit.format()} por $unitLabel',
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: _isProfitPositive
                         ? colors.primary
                         : colors.error,
                   ),
-                ),
+                )),
               ],
             ),
           ),

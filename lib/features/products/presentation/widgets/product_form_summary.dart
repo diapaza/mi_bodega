@@ -168,23 +168,26 @@ class ProductFormSummary extends StatelessWidget {
                           style: theme.textTheme.bodyMedium,
                         ),
                       ),
-                      Text(
+                      Flexible(child: Text(
                         'Factor: ${c.factor.toInt()}',
+                        overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall,
-                      ),
+                      )),
                       if (c.purchasePrice != null) ...[
                         const SizedBox(width: 12),
-                        Text(
+                        Flexible(child: Text(
                           'Compra: ${c.purchasePrice!.format()}',
+                          overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall,
-                        ),
+                        )),
                       ],
                       if (c.salePrice != null) ...[
                         const SizedBox(width: 12),
-                        Text(
+                        Flexible(child: Text(
                           'Venta: ${c.salePrice!.format()}',
+                          overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall,
-                        ),
+                        )),
                       ],
                     ],
                   ),

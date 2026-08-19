@@ -128,15 +128,16 @@ class _CashCloseDialogState extends ConsumerState<CashCloseDialog> {
               children: [
                 Text('Diferencia', style: theme.textTheme.bodyMedium),
                 const Spacer(),
-                Text(
+                Flexible(child: Text(
                   difference.format(),
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: difference.isZero
                         ? colors.success
                         : (difference.isNegative ? colors.error : colors.warning),
                     fontWeight: FontWeight.w700,
                   ),
-                ),
+                )),
               ],
             ),
             if (needsAuth) ...[
