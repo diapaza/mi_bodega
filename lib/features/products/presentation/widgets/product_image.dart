@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../data/services/photo_service.dart';
@@ -35,7 +36,7 @@ class ProductImage extends StatelessWidget {
         color: colors.surfaceVariant,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
-      child: Icon(Icons.inventory_2_outlined,
+      child: Icon(LucideIcons.package,
           size: iconSize, color: colors.onSurfaceVariant),
     );
     if (photoPath == null || photoPath!.isEmpty) return fallback;

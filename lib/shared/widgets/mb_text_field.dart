@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 /// Campo de texto reutilizable de MiBodega.
 class MbTextField extends StatefulWidget {
@@ -119,7 +120,7 @@ class _MbTextFieldState extends State<MbTextField> {
         suffixIcon: showToggle
             ? IconButton(
                 icon: Icon(
-                  _obscured ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    _obscured ? LucideIcons.eye_off : LucideIcons.eye,
                 ),
                 onPressed: () => setState(() => _obscured = !_obscured),
               )

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_button.dart';
@@ -63,7 +64,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.storefront, size: 64, color: colors.primary),
+                  Icon(LucideIcons.store, size: 64, color: colors.primary),
                   const SizedBox(height: 12),
                   Text(
                     'MiBodega',
@@ -91,7 +92,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   MbTextField(
                     controller: _username,
                     label: 'Usuario',
-                    prefixIcon: Icon(Icons.person_outline, color: colors.onSurfaceVariant),
+                    prefixIcon: Icon(LucideIcons.user, color: colors.onSurfaceVariant),
                     textCapitalization: TextCapitalization.none,
                     onSubmitted: (_) => _submit(),
                   ),
@@ -106,7 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     label: 'Ingresar',
                     loading: loading,
                     onPressed: loading ? null : _submit,
-                    icon: Icons.login,
+                    icon: LucideIcons.log_in,
                   ),
                   const SizedBox(height: 12),
                   TextButton(
@@ -141,7 +142,7 @@ class _ErrorBanner extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            isLockout ? Icons.lock_outline : Icons.error_outline,
+            isLockout ? LucideIcons.lock : LucideIcons.circle_alert,
             color: isLockout ? colors.warning : colors.error,
           ),
           const SizedBox(width: 8),

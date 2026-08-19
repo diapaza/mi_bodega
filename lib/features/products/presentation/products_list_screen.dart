@@ -3,11 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../catalog/presentation/catalog_providers.dart';
 import '../domain/entities/product.dart';
@@ -86,10 +89,10 @@ class _ProductsListScreenState extends ConsumerState<ProductsListScreen> {
               onChanged: _onSearch,
               decoration: InputDecoration(
                 hintText: 'Buscar por nombre, código o barras',
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(LucideIcons.search),
                 suffixIcon: _search.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear),
+                        icon: const Icon(LucideIcons.x),
                         onPressed: () {
                           _search.clear();
                           _onSearch('');
@@ -116,7 +119,7 @@ class _ProductsListScreenState extends ConsumerState<ProductsListScreen> {
                       .read(productListFilterProvider.notifier)
                       .state = filter.copyWith(categoryId: () => v),
                 ),
-                const SizedBox(width: 8),
+                const Gap(8),
                 _FilterDropdown<int?>(
                   value: filter.brandId,
                   hint: 'Marca',
@@ -128,7 +131,7 @@ class _ProductsListScreenState extends ConsumerState<ProductsListScreen> {
                       .read(productListFilterProvider.notifier)
                       .state = filter.copyWith(brandId: () => v),
                 ),
-                const SizedBox(width: 8),
+                const Gap(8),
                 FilterChip(
                   label: const Text('Solo activos'),
                   selected: filter.onlyActive,
@@ -136,14 +139,14 @@ class _ProductsListScreenState extends ConsumerState<ProductsListScreen> {
                       .read(productListFilterProvider.notifier)
                       .state = filter.copyWith(onlyActive: v),
                 ),
-                const SizedBox(width: 8),
+                const Gap(8),
                 _SortDropdown(
                   sort: filter.sort,
                   onChanged: (s) => ref
                       .read(productListFilterProvider.notifier)
                       .state = filter.copyWith(sort: s),
                 ),
-                const SizedBox(width: 8),
+                const Gap(8),
                 IconButton(
                   tooltip: viewMode == ProductViewMode.grid ? 'Vista lista' : 'Vista cards',
                   icon: Icon(viewMode == ProductViewMode.grid
@@ -165,12 +168,12 @@ class _ProductsListScreenState extends ConsumerState<ProductsListScreen> {
                 ref.invalidate(brandsProvider);
               },
               child: productsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: MbLoading()),
               error: (e, _) => Center(child: Text('Error: $e')),
               data: (products) {
                 if (products.isEmpty) {
                   return const MbEmptyState(
-                    icon: Icons.inventory_2_outlined,
+                    icon: LucideIcons.package,
                     title: 'Sin productos',
                     message: 'Crea tu primer producto para empezar.',
                   );
@@ -182,7 +185,7 @@ class _ProductsListScreenState extends ConsumerState<ProductsListScreen> {
                       maxCrossAxisExtent: 200,
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      childAspectRatio: 0.72,
+                      childAspectRatio: 0.82,
                     ),
                     itemCount: products.length,
                     itemBuilder: (context, i) {
@@ -203,7 +206,7 @@ class _ProductsListScreenState extends ConsumerState<ProductsListScreen> {
                 return ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: products.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  separatorBuilder: (_, _) => const Gap(8),
                     itemBuilder: (context, i) {
                       final item = products[i];
                       return ProductListTile(

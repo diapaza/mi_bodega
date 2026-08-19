@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/money/money.dart';
@@ -9,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/mb_button.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/presentation/session_controller.dart';
@@ -355,7 +357,7 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
                   const SizedBox(width: 8),
                   IconButton(
                     tooltip: 'Nuevo proveedor',
-                    icon: const Icon(Icons.person_add_alt_1_outlined),
+                    icon: const Icon(LucideIcons.user_plus),
                     onPressed: _quickSupplier,
                   ),
                 ],
@@ -364,7 +366,7 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
           ),
           Expanded(
             child: productsAsync.isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: MbLoading())
                 : productsAsync.hasError
                     ? Center(
                         child: Padding(
@@ -372,8 +374,8 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.error_outline,
-                                  size: 48, color: colors.error),
+Icon(LucideIcons.circle_alert,
+                                   size: 48, color: colors.error),
                               const SizedBox(height: 16),
                               Text('Error al cargar productos',
                                   style: theme.textTheme.titleMedium),
@@ -390,7 +392,7 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
                       )
                     : products.isEmpty
                         ? const MbEmptyState(
-                            icon: Icons.check_circle_outline,
+                            icon: LucideIcons.circle_check,
                             title: 'Todo en stock',
                             message:
                                 'No hay productos con stock bajo o agotados.',
@@ -452,17 +454,18 @@ class _RestockScreenState extends ConsumerState<RestockScreen> {
                                                         ),
                                                       ),
                                                       const SizedBox(width: 6),
-                                                      Text(
+                                                      Flexible(child: Text(
                                                         '${status.label} · '
                                                         'Stock ${fmtQty(item.stock)}'
                                                         '${item.outOfStock ? ' · AGOTADO' : ''}'
                                                         ' · mín ${fmtQty(p.stockMin)}',
+                                                        overflow: TextOverflow.ellipsis,
                                                         style: theme.textTheme
                                                             .bodySmall
                                                             ?.copyWith(
                                                           color: status.color,
                                                         ),
-                                                      ),
+                                                      )),
                                                     ],
                                                   ),
                                                 ],

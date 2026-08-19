@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_button.dart';
@@ -137,14 +138,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       if (_currentStep == 0)
                         MbButton(
                           label: 'Siguiente',
-                          icon: Icons.arrow_forward,
+                          icon: LucideIcons.arrow_right,
                           onPressed: _next,
                         )
                       else ...[
                         MbButton(
                           label: 'Crear tienda',
-                          icon: Icons.check,
-                          loading: loading,
+icon: LucideIcons.check,
+                           loading: loading,
                           onPressed: loading ? null : _submit,
                         ),
                         const SizedBox(height: 8),
@@ -206,7 +207,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               MbTextField(
                 controller: _store,
                 label: 'Nombre de la tienda *',
-                prefixIcon: Icon(Icons.storefront, color: colors.onSurfaceVariant),
+                prefixIcon: Icon(LucideIcons.store, color: colors.onSurfaceVariant),
               ),
               const SizedBox(height: 12),
               MbTextField(
@@ -237,7 +238,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               MbTextField(
                 controller: _ownerName,
                 label: 'Nombre completo *',
-                prefixIcon: Icon(Icons.person_outline, color: colors.onSurfaceVariant),
+                prefixIcon: Icon(LucideIcons.user, color: colors.onSurfaceVariant),
               ),
               const SizedBox(height: 12),
               MbTextField(

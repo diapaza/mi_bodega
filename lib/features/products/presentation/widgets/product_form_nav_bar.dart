@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
+
 import '../../../../shared/widgets/mb_button.dart';
 
 class ProductFormNavBar extends StatelessWidget {
@@ -45,7 +47,7 @@ class ProductFormNavBar extends StatelessWidget {
                 child: MbButton(
                   label: 'Anterior',
                   variant: MbButtonVariant.outlined,
-                  icon: Icons.arrow_back,
+                  icon: LucideIcons.arrow_left,
                   onPressed: saving ? null : onPrevious,
                 ),
               ),
@@ -54,8 +56,8 @@ class ProductFormNavBar extends StatelessWidget {
               Expanded(
                 child: MbButton(
                   label: isEditing ? 'Guardar cambios' : 'Crear producto',
-                  icon: Icons.check,
-                  loading: saving,
+icon: LucideIcons.check,
+                   loading: saving,
                   onPressed: saving ? null : onSave,
                 ),
               )
@@ -63,7 +65,7 @@ class ProductFormNavBar extends StatelessWidget {
               Expanded(
                 child: MbButton(
                   label: 'Siguiente',
-                  icon: Icons.arrow_forward,
+                  icon: LucideIcons.arrow_right,
                   onPressed: saving ? null : onNext,
                 ),
               ),

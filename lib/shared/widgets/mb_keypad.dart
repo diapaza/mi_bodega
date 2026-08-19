@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../core/theme/app_colors.dart';
 
@@ -57,7 +58,7 @@ class MbKeypad extends StatelessWidget {
                   },
                   child: Center(
                     child: k == '⌫'
-                        ? const Icon(Icons.backspace_outlined)
+                        ? const Icon(LucideIcons.delete)
                         : Text(
                             k,
                             style: theme.textTheme.titleLarge

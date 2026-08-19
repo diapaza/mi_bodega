@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
@@ -8,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/domain/entities/auth.dart';
@@ -60,7 +62,7 @@ class SalesListScreen extends ConsumerWidget {
                   .state = filter.copyWith(search: v.trim()),
               decoration: const InputDecoration(
                 hintText: 'Buscar por nº de venta o cliente',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: Icon(LucideIcons.search),
               ),
             ),
           ),
@@ -116,7 +118,7 @@ class SalesListScreen extends ConsumerWidget {
                   label: 'Filtros avanzados',
                   selected: hasFilters,
                   onTap: () => _showFilters(context, ref),
-                  icon: Icons.tune,
+                  icon: LucideIcons.sliders_horizontal,
                 ),
               ],
             ),
@@ -127,12 +129,12 @@ class SalesListScreen extends ConsumerWidget {
                 ref.invalidate(filteredSalesProvider);
               },
               child: ref.watch(filteredSalesProvider).when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: MbLoading()),
               error: (e, _) => Center(child: Text('Error: $e')),
               data: (sales) {
                 if (sales.isEmpty) {
                   return const MbEmptyState(
-                    icon: Icons.receipt_long_outlined,
+                    icon: LucideIcons.receipt,
                     title: 'Sin ventas',
                     message: 'Las ventas del POS aparecerán aquí.',
                   );
@@ -389,7 +391,7 @@ class _SaleDetailSheet extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: detailAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: MbLoading()),
         error: (e, _) => Text('Error: $e'),
         data: (detail) {
           if (detail == null) return const Text('Venta no encontrada');
@@ -453,7 +455,7 @@ class _SaleDetailSheet extends ConsumerWidget {
                     foregroundColor: colors.onError,
                   ),
                   onPressed: () => _cancel(context, ref, sale),
-                  icon: const Icon(Icons.cancel_outlined),
+                  icon: const Icon(LucideIcons.circle_x),
                   label: const Text('Anular venta'),
                 ),
               ],
@@ -573,16 +575,8 @@ class _QuickFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FilterChip(
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 16),
-            const SizedBox(width: 4),
-          ],
-          Text(label),
-        ],
-      ),
+      avatar: icon != null ? Icon(icon, size: 16) : null,
+      label: Text(label),
       selected: selected,
       onSelected: (_) => onTap(),
     );

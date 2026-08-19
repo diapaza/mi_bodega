@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../core/theme/app_colors.dart';
 
@@ -55,7 +56,7 @@ class MbStepIndicator extends StatelessWidget {
                 ),
                 child: Center(
                   child: isCompleted
-                      ? Icon(Icons.check, size: 16, color: colors.primary)
+                      ? Icon(LucideIcons.check, size: 16, color: colors.primary)
                       : Text(
                           '${i + 1}',
                           style: TextStyle(

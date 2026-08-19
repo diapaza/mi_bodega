@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import 'customers_providers.dart';
 
 /// Lista y búsqueda de clientes.
@@ -26,22 +28,22 @@ class CustomersScreen extends ConsumerWidget {
               onChanged: (v) => ref.read(customersSearchProvider.notifier).state = v,
               decoration: const InputDecoration(
                 hintText: 'Buscar por nombre o DNI',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: Icon(LucideIcons.search),
               ),
             ),
           ),
           Expanded(
             child: customersAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: MbLoading()),
               error: (e, _) => MbEmptyState(
-                icon: Icons.error_outline,
+                icon: LucideIcons.circle_alert,
                 title: 'Error al cargar',
                 message: '$e',
               ),
               data: (customers) {
                 if (customers.isEmpty && search.isEmpty) {
                   return const MbEmptyState(
-                    icon: Icons.people_outline,
+                    icon: LucideIcons.users,
                     title: 'Sin clientes',
                     message: 'Los clientes registrados en las ventas aparecerán aquí.',
                   );
@@ -65,7 +67,7 @@ class CustomersScreen extends ConsumerWidget {
                               : 'Sin DNI',
                         ),
                         trailing: Icon(
-                          Icons.chevron_right,
+                          LucideIcons.chevron_right,
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),

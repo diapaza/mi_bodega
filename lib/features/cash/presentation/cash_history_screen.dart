@@ -1,9 +1,11 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../auth/domain/entities/auth.dart';
 import '../../users/presentation/users_providers.dart';
 import 'cash_providers.dart';
@@ -24,15 +26,15 @@ class CashHistoryScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Historial de turnos')),
       body: historyAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: MbLoading()),
         error: (e, _) => MbEmptyState(
-          icon: Icons.error_outline,
+          icon: LucideIcons.circle_alert,
           title: 'Error al cargar',
           message: '$e',
         ),
         data: (sessions) => sessions.isEmpty
             ? const MbEmptyState(
-                icon: Icons.history,
+                icon: LucideIcons.clock,
                 title: 'Sin turnos cerrados',
                 message: 'Los turnos de caja cerrados aparecerán aquí.',
               )

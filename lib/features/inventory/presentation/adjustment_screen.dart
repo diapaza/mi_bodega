@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
@@ -159,7 +160,7 @@ class _AdjustmentScreenState extends ConsumerState<AdjustmentScreen> {
               const SizedBox(height: 24),
               MbButton(
                 label: 'Guardar ajuste',
-                icon: Icons.check,
+                icon: LucideIcons.check,
                 loading: _saving,
                 onPressed: _saving ? null : _save,
               ),

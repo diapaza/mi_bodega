@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
@@ -184,7 +185,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
             if (_isEditing && canResetPin)
               IconButton(
                 tooltip: 'Restablecer PIN',
-                icon: const Icon(Icons.password),
+                icon: const Icon(LucideIcons.key_round),
                 onPressed: _resetPin,
               ),
           ],
@@ -242,8 +243,8 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                 const SizedBox(height: 24),
                 MbButton(
                   label: _isEditing ? 'Guardar cambios' : 'Crear usuario',
-                  icon: Icons.check,
-                  loading: _saving,
+icon: LucideIcons.check,
+                   loading: _saving,
                   onPressed: _saving ? null : _save,
                 ),
               ],

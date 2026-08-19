@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_badge.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../inventory/presentation/inventory_screen.dart';
 import '../../pos/presentation/pos_screen.dart';
@@ -86,7 +87,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
+              MbLoading(),
               SizedBox(height: 16),
               Text('Cargando...'),
             ],

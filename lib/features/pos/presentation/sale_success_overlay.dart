@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../sales/domain/entities/sale.dart';
@@ -37,7 +38,7 @@ class _SaleSuccessDialog extends StatelessWidget {
                 color: colors.successContainer,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.check_circle, size: 48, color: colors.success),
+              child: Icon(LucideIcons.circle_check, size: 48, color: colors.success),
             ),
             const SizedBox(height: 12),
             Text('Venta completada', style: theme.textTheme.titleLarge),

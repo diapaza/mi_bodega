@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../shared/widgets/mb_button.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../store/domain/entities/store.dart';
@@ -83,7 +84,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (!_loaded) {
       return Scaffold(
         appBar: AppBar(title: const Text('Configuración')),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(child: MbLoading()),
       );
     }
 

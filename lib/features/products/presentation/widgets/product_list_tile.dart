@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/mb_badge.dart';
@@ -41,7 +42,7 @@ class ProductListTile extends StatelessWidget {
               GestureDetector(
                 onTap: onFavorite,
                 child: Icon(
-                  p.isFavorite ? Icons.star : Icons.star_border,
+                  p.isFavorite ? LucideIcons.star : LucideIcons.star_off,
                   color: p.isFavorite ? colors.secondary : colors.onSurfaceVariant,
                   size: 20,
                 ),

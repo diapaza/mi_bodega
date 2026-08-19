@@ -2,6 +2,8 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/money/money.dart';
@@ -150,7 +152,7 @@ class _CartSheetState extends ConsumerState<CartSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 8),
+            const Gap(8),
             Container(
               width: 48,
               height: 5,
@@ -166,13 +168,13 @@ class _CartSheetState extends ConsumerState<CartSheet> {
                 children: [
                   if (_showPayment)
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, size: 20),
+                      icon: const Icon(LucideIcons.arrow_left, size: 20),
                       onPressed: () => setState(() => _showPayment = false),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
-                  if (_showPayment) const SizedBox(width: 8),
-                  Text(_showPayment ? 'Cobrar' : 'Carrito', style: theme.textTheme.titleLarge),
+                  if (_showPayment) const Gap(8),
+                  Flexible(child: Text(_showPayment ? 'Cobrar' : 'Carrito', style: theme.textTheme.titleLarge, overflow: TextOverflow.ellipsis)),
                   const Spacer(),
                   if (!_showPayment)
                     TextButton(
@@ -185,7 +187,7 @@ class _CartSheetState extends ConsumerState<CartSheet> {
             // Content
             if (cart.isEmpty && !_showPayment)
               const MbEmptyState(
-                icon: Icons.remove_shopping_cart_outlined,
+                icon: LucideIcons.shopping_cart,
                 title: 'Carrito vacío',
               )
             else if (_showPayment)
@@ -233,7 +235,7 @@ class _CartSheetState extends ConsumerState<CartSheet> {
                       Expanded(
                         child: MbButton(
                           label: 'Cobrar',
-                          icon: Icons.point_of_sale,
+                           icon: LucideIcons.banknote,
                           onPressed: cart.isEmpty ? null : () => setState(() => _showPayment = true),
                         ),
                       )
@@ -241,7 +243,7 @@ class _CartSheetState extends ConsumerState<CartSheet> {
                       Expanded(
                         child: MbButton(
                           label: missing.isZero ? 'Confirmar venta' : 'Faltan ${missing.format()}',
-                          icon: Icons.check_circle_outline,
+                           icon: LucideIcons.circle_check,
                           loading: _saving,
                           onPressed: canConfirm && !_saving ? _confirm : null,
                         ),
@@ -292,7 +294,7 @@ class _CartSheetState extends ConsumerState<CartSheet> {
               label: 'Descuento (S/)',
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
             ),
-            const SizedBox(height: 8),
+            const Gap(8),
             // Cliente opcional
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -302,9 +304,9 @@ class _CartSheetState extends ConsumerState<CartSheet> {
             ),
             if (_showCustomer) ...[
               MbTextField(controller: _dni, label: 'DNI', keyboardType: TextInputType.number),
-              const SizedBox(height: 8),
+              const Gap(8),
               MbTextField(controller: _name, label: 'Nombre'),
-              const SizedBox(height: 8),
+              const Gap(8),
             ],
             // Método de pago
             Wrap(
@@ -326,7 +328,7 @@ class _CartSheetState extends ConsumerState<CartSheet> {
               ],
             ),
             if (isCash) ...[
-              const SizedBox(height: 8),
+              const Gap(8),
               Row(
                 children: [
                   Expanded(
@@ -361,7 +363,7 @@ class _CartSheetState extends ConsumerState<CartSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const Gap(8),
               Wrap(
                 spacing: 8,
                 children: [
@@ -376,11 +378,11 @@ class _CartSheetState extends ConsumerState<CartSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const Gap(8),
               if (!_keypadExpanded)
                 TextButton.icon(
                   onPressed: () => setState(() => _keypadExpanded = true),
-                  icon: const Icon(Icons.dialpad, size: 18),
+                    icon: const Icon(LucideIcons.grid_3x3, size: 18),
                   label: const Text('Ingresar monto manual'),
                 )
               else ...[
@@ -395,12 +397,12 @@ class _CartSheetState extends ConsumerState<CartSheet> {
                 ),
                 TextButton.icon(
                   onPressed: () => setState(() => _keypadExpanded = false),
-                  icon: const Icon(Icons.keyboard_hide, size: 18),
+                   icon: const Icon(LucideIcons.keyboard, size: 18),
                   label: const Text('Ocultar teclado'),
                 ),
               ],
             ],
-            const SizedBox(height: 8),
+            const Gap(8),
           ],
         ),
       ),
@@ -474,19 +476,20 @@ class _CartLineRow extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(line.name, style: theme.textTheme.titleSmall),
-                const SizedBox(height: 4),
+                const Gap(4),
                 _UnitSelector(line: line),
                 Row(
                   children: [
-                    Text(
+                    Flexible(child: Text(
                       '${line.unitPrice.format()} / $unitName',
                       style: theme.textTheme.bodySmall,
-                    ),
+                      overflow: TextOverflow.ellipsis,
+                    )),
                     if (canEditPrice) ...[
-                      const SizedBox(width: 4),
+                      const Gap(4),
                       InkWell(
                         onTap: () => _editPrice(context, ref),
-                        child: Icon(Icons.edit, size: 14, color: colors.primary),
+                         child: Icon(LucideIcons.pencil, size: 14, color: colors.primary),
                       ),
                     ],
                   ],
@@ -501,11 +504,11 @@ class _CartLineRow extends ConsumerWidget {
             onInc: () => controller.increment(line.productId),
             onSet: (q) => controller.setQuantity(line.productId, q),
           ),
-          const SizedBox(width: 8),
+          const Gap(8),
           IconButton(
             tooltip: 'Eliminar',
             onPressed: () => controller.remove(line.productId),
-            icon: Icon(Icons.delete_outline, color: colors.error),
+            icon: Icon(LucideIcons.trash_2, color: colors.error),
           ),
         ],
       ),
@@ -536,7 +539,7 @@ class _Stepper extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _RoundButton(icon: Icons.remove, onTap: onDec),
+        _RoundButton(icon: LucideIcons.minus, onTap: onDec),
         GestureDetector(
           onTap: () => _editQuantity(context),
           child: Container(
@@ -552,7 +555,7 @@ class _Stepper extends StatelessWidget {
             ),
           ),
         ),
-        _RoundButton(icon: Icons.add, onTap: onInc),
+        _RoundButton(icon: LucideIcons.plus, onTap: onInc),
       ],
     );
   }

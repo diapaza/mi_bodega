@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/money/money.dart';
@@ -114,7 +116,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Efectivo esperado: ${expected.format()}'),
-            const SizedBox(height: 12),
+            Gap(12),
             MbTextField(
               controller: controller,
               label: 'Dinero contado (S/)',
@@ -192,10 +194,10 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                 textInputAction: TextInputAction.done,
                 decoration: InputDecoration(
                   hintText: 'Buscar producto…',
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: const Icon(LucideIcons.search),
                   suffixIcon: _search.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear),
+                          icon: const Icon(LucideIcons.x),
                           onPressed: () {
                             _search.clear();
                             ref.read(posSearchProvider.notifier).state = '';
@@ -216,9 +218,9 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: ActionChip(
-                          avatar: Icon(item.product.isFavorite ? Icons.star : Icons.trending_up,
+                           avatar: Icon(item.product.isFavorite ? LucideIcons.star : LucideIcons.trending_up,
                               size: 16, color: colors.secondary),
-                          label: Text(item.product.name),
+                          label: Text(item.product.name, overflow: TextOverflow.ellipsis, maxLines: 1),
                           onPressed: () => _addToCart(item),
                         ),
                       ),
@@ -304,8 +306,8 @@ class _CashBanner extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            Icon(Icons.lock_outline, color: colors.warning, size: 20),
-            const SizedBox(width: 8),
+            Icon(LucideIcons.lock, color: colors.warning, size: 20),
+            Gap(8),
             const Expanded(child: Text('Caja cerrada. Abre la caja para vender.')),
             if (canOpen)
               FilledButton(
@@ -322,8 +324,8 @@ class _CashBanner extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
         children: [
-          Icon(Icons.check_circle_outline, color: colors.success, size: 18),
-          const SizedBox(width: 8),
+          Icon(LucideIcons.circle_check, color: colors.success, size: 18),
+          Gap(8),
           Expanded(
             child: Text(
               'Caja abierta · ${(liveExpected ?? s.openingAmount).format()}',
@@ -375,7 +377,7 @@ class _PosSkeletonGrid extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 6),
+            Gap(6),
             Container(
               width: double.infinity,
               height: 10,
@@ -384,7 +386,7 @@ class _PosSkeletonGrid extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
-            const SizedBox(height: 4),
+            Gap(4),
             Container(
               width: 50,
               height: 12,
@@ -444,7 +446,7 @@ class _PosProductCard extends StatelessWidget {
                   color: disabled ? colors.outline : null,
                 ),
               ),
-              const SizedBox(height: 2),
+              Gap(2),
               Row(
                 children: [
                   Expanded(
@@ -456,9 +458,9 @@ class _PosProductCard extends StatelessWidget {
                     ),
                   ),
                   if (item.outOfStock)
-                    Icon(Icons.block, color: colors.error, size: 16)
+                    Icon(LucideIcons.ban, color: colors.error, size: 16)
                   else if (item.lowStock)
-                    Icon(Icons.warning_amber_rounded,
+                    Icon(LucideIcons.triangle_alert,
                         color: colors.warning, size: 16),
                 ],
               ),
@@ -518,7 +520,7 @@ class _CartBar extends StatelessWidget {
               style: FilledButton.styleFrom(
                 minimumSize: const Size(150, 52),
               ),
-              icon: const Icon(Icons.shopping_cart_checkout),
+              icon: const Icon(LucideIcons.shopping_cart),
               label: Text(!hasCashSession ? 'Abrir caja' : 'Cobrar'),
             ),
           ),

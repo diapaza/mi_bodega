@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_badge.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../../core/utils/formatters.dart';
@@ -235,7 +237,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   if (email != null && email.isNotEmpty)
                     Row(
                       children: [
-                        Icon(Icons.check_circle, color: context.colors.success),
+                        Icon(LucideIcons.circle_check, color: context.colors.success),
                         const SizedBox(width: 8),
                         Expanded(child: Text('Conectado: $email')),
                       ],
@@ -247,7 +249,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   if (email == null || email.isEmpty)
                     FilledButton.icon(
                       onPressed: _working ? null : _connect,
-                      icon: const Icon(Icons.login),
+                      icon: const Icon(LucideIcons.log_in),
                       label: Text(_working ? 'Conectando…' : 'Conectar con Google'),
                     )
                   else
@@ -270,7 +272,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   const SizedBox(height: 8),
                   FilledButton.icon(
                     onPressed: _working ? null : _createBackup,
-                    icon: const Icon(Icons.backup_outlined),
+                    icon: const Icon(LucideIcons.cloud_upload),
                     label: Text(_working ? 'Trabajando…' : 'Subir respaldo a Drive'),
                   ),
                   if (_working) ...[
@@ -314,7 +316,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
           Text('Respaldos en Drive', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           driveAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: MbLoading()),
             error: (e, _) => Text('Error: $e'),
             data: (files) => files.isEmpty
                 ? const Text('Sin respaldos en Drive aún.')
@@ -324,12 +326,12 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                         ListTile(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.cloud_done_outlined),
+                          leading: const Icon(LucideIcons.cloud),
                           title: Text(f.name),
                           subtitle: Text(_fmtSize(f.size)),
                           trailing: IconButton(
                             tooltip: 'Restaurar',
-                            icon: const Icon(Icons.restore),
+                            icon: const Icon(LucideIcons.rotate_ccw),
                             onPressed: _working ? null : () => _restore(f),
                           ),
                         ),
@@ -340,7 +342,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
           Text('Respaldos locales', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           localAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: MbLoading()),
             error: (e, _) => Text('Error: $e'),
             data: (list) => list.isEmpty
                 ? const Text('Sin respaldos locales.')
@@ -350,7 +352,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                         ListTile(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.folder_outlined),
+                          leading: const Icon(LucideIcons.folder),
                           title: Text(b.filename),
                           subtitle: Text(fmtDateTime(b.createdAt)),
                           trailing: MbBadge(b.status.dbName),

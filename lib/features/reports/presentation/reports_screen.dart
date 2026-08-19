@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../auth/domain/entities/auth.dart';
 import '../../users/presentation/users_providers.dart';
 import '../../sales/domain/entities/sale.dart';
@@ -47,7 +49,7 @@ class ReportsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           summaryAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: MbLoading()),
             error: (e, _) => Text('Error: $e'),
             data: (summary) {
               if (summary == null) return const SizedBox.shrink();
@@ -88,7 +90,7 @@ class ReportsScreen extends ConsumerWidget {
             },
           ),
           topAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: MbLoading()),
             error: (e, _) => Text('Error: $e'),
             data: (top) => top.isEmpty
                 ? const SizedBox.shrink()
@@ -98,7 +100,7 @@ class ReportsScreen extends ConsumerWidget {
                         ListTile(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.trending_up, size: 20),
+                          leading: const Icon(LucideIcons.trending_up, size: 20),
                           title: Text(t.productStock.product.name),
                           subtitle: Text(
                               '${t.quantity.toStringAsFixed(0)} vendidos · '
@@ -117,7 +119,7 @@ class ReportsScreen extends ConsumerWidget {
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           dailyAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: MbLoading()),
             error: (e, _) => Text('Error: $e'),
             data: (daily) => daily.isEmpty
                 ? const SizedBox.shrink()
@@ -181,13 +183,14 @@ class _SummaryCard extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: Text(label, style: theme.textTheme.bodyMedium)),
-          Text(
+          Flexible(child: Text(
             value,
+            overflow: TextOverflow.ellipsis,
             style: highlight
                 ? theme.textTheme.titleSmall
                     ?.copyWith(color: context.colors.primary)
                 : theme.textTheme.bodyMedium,
-          ),
+          )),
         ],
       ),
     );
@@ -236,10 +239,11 @@ class _DailyChart extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 SizedBox(
-                  width: 72,
+                  width: 80,
                   child: Text(
                     p.revenue.format(),
                     textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),

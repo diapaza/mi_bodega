@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_badge.dart';
@@ -56,7 +58,7 @@ class DashboardScreen extends ConsumerWidget {
                         '${today?.count ?? 0} venta${today?.count == 1 ? '' : 's'}',
                   ),
                 ),
-                const SizedBox(width: 12),
+                const Gap(12),
                 Expanded(
                   child: _MetricCard(
                     label: 'Ganancia bruta hoy',
@@ -68,7 +70,7 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ],
             ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.05),
-            const SizedBox(height: 12),
+            Gap(12),
             _MetricCard(
               label: 'Ventas del mes',
               value: month?.revenue.format(),
@@ -77,11 +79,11 @@ class DashboardScreen extends ConsumerWidget {
                   '${month?.count ?? 0} venta${month?.count == 1 ? '' : 's'}'
                   ' · ganancia ${month?.grossProfit.format() ?? 'S/ 0.00'}',
             ).animate().fadeIn(duration: 300.ms, delay: 100.ms).slideY(begin: 0.05),
-            const SizedBox(height: 12),
+            Gap(12),
             Card(
               child: ListTile(
                 leading: Icon(
-                  cashOpen == null ? Icons.lock_outline : Icons.check_circle,
+                  cashOpen == null ? LucideIcons.lock : LucideIcons.circle_check,
                   color: cashOpen == null ? colors.warning : colors.success,
                 ),
                 title: Text(cashOpen == null ? 'Caja cerrada' : 'Caja abierta'),
@@ -96,7 +98,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
             if (low.isNotEmpty || out.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              Gap(12),
               Wrap(
                 spacing: 8,
                 children: [
@@ -115,9 +117,9 @@ class DashboardScreen extends ConsumerWidget {
                 ],
               ),
             ],
-            const SizedBox(height: 16),
+            Gap(16),
             Text('Más vendidos', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
+            Gap(8),
             if (top.isEmpty)
               const Text('Aún no hay ventas.')
             else
@@ -126,7 +128,7 @@ class DashboardScreen extends ConsumerWidget {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: top.length > 5 ? 5 : top.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  separatorBuilder: (_, _) => const Gap(8),
                   itemBuilder: (context, i) {
                     final t = top[i];
                     return Card(
@@ -135,8 +137,8 @@ class DashboardScreen extends ConsumerWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.inventory_2_outlined, color: colors.primary),
-                            const SizedBox(height: 4),
+                            Icon(LucideIcons.package, color: colors.primary),
+                            Gap(4),
                             Text(
                               t.productStock.product.name,
                               style: theme.textTheme.bodySmall,
@@ -152,12 +154,12 @@ class DashboardScreen extends ConsumerWidget {
                   },
                 ),
               ),
-            const SizedBox(height: 16),
+            Gap(16),
             Text('Actividad reciente', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
+            Gap(8),
             if (recent.isEmpty)
               const MbEmptyState(
-                icon: Icons.receipt_long_outlined,
+                icon: LucideIcons.receipt,
                 title: 'Sin ventas',
                 message: 'Las ventas del día aparecerán aquí.',
               )
@@ -217,7 +219,7 @@ class _MetricCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label, style: theme.textTheme.bodySmall),
-            const SizedBox(height: 4),
+            Gap(4),
             if (loading)
               Container(
                 width: 80,
@@ -267,7 +269,7 @@ class _AlertChip extends StatelessWidget {
       _ => (colors.surfaceVariant, colors.onSurfaceVariant),
     };
     return ActionChip(
-      avatar: Icon(Icons.warning_amber_rounded, size: 16, color: fg),
+      avatar: Icon(LucideIcons.triangle_alert, size: 16, color: fg),
       label: Text(label),
       backgroundColor: bg,
       onPressed: onTap,

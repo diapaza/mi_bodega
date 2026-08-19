@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../products/presentation/products_providers.dart';
 import '../domain/entities/purchase.dart';
 import 'purchases_providers.dart';
@@ -19,16 +21,16 @@ class PurchasesListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Compras')),
       body: purchasesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+loading: () => const Center(child: MbLoading()),
         error: (e, _) => MbEmptyState(
-          icon: Icons.error_outline,
-          title: 'Error al cargar',
+icon: LucideIcons.circle_alert,
+           title: 'Error al cargar',
           message: '$e',
         ),
         data: (purchases) {
           if (purchases.isEmpty) {
             return const MbEmptyState(
-              icon: Icons.shopping_cart_outlined,
+              icon: LucideIcons.shopping_cart,
               title: 'Sin compras',
               message: 'Registra un abastecimiento desde Inventario.',
             );
@@ -62,7 +64,7 @@ class _PurchaseCard extends ConsumerWidget {
     return Card(
       child: ExpansionTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        leading: Icon(Icons.shopping_cart_outlined, color: colors.primary),
+        leading: Icon(LucideIcons.shopping_cart, color: colors.primary),
         title: Text('Compra #${purchase.id}'),
         subtitle: Text(
           fmtDate(purchase.purchaseDate) +
@@ -76,18 +78,18 @@ class _PurchaseCard extends ConsumerWidget {
               style: theme.textTheme.titleSmall?.copyWith(color: colors.primary),
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.expand_more),
+            const Icon(LucideIcons.chevron_down),
           ],
         ),
         children: [
           itemsAsync.when(
             loading: () => const Padding(
               padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: MbLoading()),
             ),
             error: (e, _) => MbEmptyState(
-              icon: Icons.error_outline,
-              title: 'Error al cargar',
+icon: LucideIcons.circle_alert,
+               title: 'Error al cargar',
               message: '$e',
             ),
             data: (items) => Column(

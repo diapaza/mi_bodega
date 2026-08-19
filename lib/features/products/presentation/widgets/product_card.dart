@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/mb_badge.dart';
@@ -44,7 +45,7 @@ class ProductCard extends StatelessWidget {
                   Positioned(
                     top: 6,
                     right: 6,
-                    child: Icon(Icons.star, color: colors.secondary, size: 20),
+                    child: Icon(LucideIcons.star, color: colors.secondary, size: 20),
                   ),
                 if (onFavorite != null)
                   Positioned(
@@ -59,7 +60,7 @@ class ProductCard extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          p.isFavorite ? Icons.star : Icons.star_border,
+                          p.isFavorite ? LucideIcons.star : LucideIcons.star_off,
                           color: p.isFavorite ? colors.secondary : colors.onSurfaceVariant,
                           size: 18,
                         ),

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_confirm_dialog.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/presentation/session_controller.dart';
@@ -114,20 +116,20 @@ class SuppliersScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'suppliers-fab',
         onPressed: () => _addOrEdit(context, ref),
-        icon: const Icon(Icons.add),
-        label: const Text('Nuevo'),
+icon: const Icon(LucideIcons.plus),
+         label: const Text('Nuevo'),
       ),
       body: suppliersAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: MbLoading()),
         error: (e, _) => MbEmptyState(
-          icon: Icons.error_outline,
+          icon: LucideIcons.circle_alert,
           title: 'Error al cargar',
           message: '$e',
         ),
         data: (suppliers) {
           if (suppliers.isEmpty) {
             return const MbEmptyState(
-              icon: Icons.local_shipping_outlined,
+              icon: LucideIcons.truck,
               title: 'Sin proveedores',
               message: 'Agrega proveedores para tus compras.',
             );

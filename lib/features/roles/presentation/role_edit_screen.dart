@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_button.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/domain/entities/auth.dart';
@@ -120,7 +122,7 @@ class _RoleEditScreenState extends ConsumerState<RoleEditScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(_isEditing ? 'Editar rol' : 'Nuevo rol')),
       body: !_loaded
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: MbLoading())
           : SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
@@ -195,8 +197,8 @@ class _RoleEditScreenState extends ConsumerState<RoleEditScreen> {
                       const SizedBox(height: 16),
                       MbButton(
                         label: _isEditing ? 'Guardar cambios' : 'Crear rol',
-                        icon: Icons.check,
-                        loading: _saving,
+icon: LucideIcons.check,
+                       loading: _saving,
                         onPressed: _saving ? null : _save,
                       ),
                     ],
@@ -276,7 +278,7 @@ class _Notice extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: colors.warning, size: 20),
+          Icon(LucideIcons.info, color: colors.warning, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(text, style: TextStyle(color: colors.onWarning)),

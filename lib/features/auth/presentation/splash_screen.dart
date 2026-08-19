@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/theme/app_colors.dart';
 
@@ -14,7 +15,7 @@ class SplashScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.storefront, size: 72, color: colors.primary),
+            Icon(LucideIcons.store, size: 72, color: colors.primary),
             const SizedBox(height: 16),
             Text(
               'MiBodega',

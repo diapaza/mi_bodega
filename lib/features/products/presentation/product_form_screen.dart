@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
@@ -9,6 +10,7 @@ import '../../../core/money/money.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/mb_confirm_dialog.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/presentation/session_controller.dart';
@@ -325,7 +327,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final units = ref.watch(unitsProvider).valueOrNull ?? const [];
 
     if (!_loaded) {
-      return Scaffold(appBar: AppBar(), body: const Center(child: CircularProgressIndicator()));
+      return Scaffold(appBar: AppBar(), body: const Center(child: MbLoading()));
     }
 
     final salePrice = _money(_sale.text);
@@ -365,7 +367,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             if (_isEditing && canDisable)
               IconButton(
                 tooltip: 'Eliminar / desactivar',
-                icon: const Icon(Icons.delete_outline),
+                icon: const Icon(LucideIcons.trash_2),
                 onPressed: _delete,
               ),
           ],

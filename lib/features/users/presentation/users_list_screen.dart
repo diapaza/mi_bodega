@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/security/permission_guard.dart';
@@ -9,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_confirm_dialog.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../../shared/widgets/mb_snackbar.dart';
 import '../../auth/domain/entities/auth.dart';
 import '../../auth/presentation/session_controller.dart';
@@ -42,18 +44,18 @@ class UsersListScreen extends ConsumerWidget {
             )
           : null,
       body: usersAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: MbLoading()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (users) {
           if (users.isEmpty) {
             return MbEmptyState(
-              icon: Icons.people_outline,
+              icon: LucideIcons.users,
               title: 'Sin usuarios',
               message: 'Crea el primer vendedor para tu tienda.',
               action: canCreate
                   ? FilledButton.icon(
                       onPressed: () => context.push('/users/new'),
-                      icon: const Icon(Icons.person_add),
+icon: const Icon(LucideIcons.user_plus),
                       label: const Text('Crear usuario'),
                     )
                   : null,

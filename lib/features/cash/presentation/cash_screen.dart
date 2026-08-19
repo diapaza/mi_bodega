@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/money/money.dart';
@@ -40,7 +42,7 @@ class CashScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: 'Historial de turnos',
-            icon: const Icon(Icons.history),
+            icon: const Icon(LucideIcons.clock),
             onPressed: () => context.push('/cash/history'),
           ),
         ],
@@ -108,13 +110,13 @@ class _ClosedState extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MbEmptyState(
-      icon: Icons.lock_outline,
+      icon: LucideIcons.lock,
       title: 'Caja cerrada',
       message: 'Abre la caja para iniciar el turno.',
       action: canOpen
           ? FilledButton.icon(
               onPressed: () => _open(context, ref),
-              icon: const Icon(Icons.lock_open),
+              icon: const Icon(LucideIcons.lock_open),
               label: const Text('Abrir caja'),
             )
           : null,
@@ -167,17 +169,17 @@ class _OpenState extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const Gap(8),
                     Text('Responsable: ${opener?.fullName ?? '—'}'),
                     Text('Apertura: ${session.openingAmount.format()}'),
-                    const SizedBox(height: 8),
+                    const Gap(8),
                     Text('Efectivo esperado', style: theme.textTheme.bodySmall),
                     Text(
                       expected.format(),
                       style: theme.textTheme.headlineMedium
                           ?.copyWith(color: colors.primary),
                     ),
-                    const SizedBox(height: 12),
+                    const Gap(12),
                     if (canManage)
                       Row(
                         children: [
@@ -191,7 +193,7 @@ class _OpenState extends ConsumerWidget {
                               child: const Text('Ingreso'),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const Gap(8),
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () => _manualMovement(context, ref, CashMovementType.cashOut),
@@ -205,7 +207,7 @@ class _OpenState extends ConsumerWidget {
                         ],
                       ),
                     if (canClose) ...[
-                      const SizedBox(height: 8),
+                      const Gap(8),
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
@@ -217,7 +219,7 @@ class _OpenState extends ConsumerWidget {
                               canAuthorize: canAuthorize,
                             ),
                           ),
-                          icon: const Icon(Icons.lock_outline, size: 18),
+                          icon: const Icon(LucideIcons.lock, size: 18),
                           label: const Text('Cerrar caja'),
                           style: FilledButton.styleFrom(
                             minimumSize: const Size(0, 44),
@@ -271,7 +273,7 @@ class _OpenState extends ConsumerWidget {
               label: 'Monto (S/)',
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
             ),
-            const SizedBox(height: 8),
+            const Gap(8),
             MbTextField(controller: noteCtrl, label: 'Motivo *'),
           ],
         ),
@@ -340,7 +342,7 @@ class _MovementsTab extends ConsumerWidget {
     final movements = ref.watch(sessionMovementsProvider).valueOrNull ?? const [];
     if (movements.isEmpty) {
       return const MbEmptyState(
-        icon: Icons.swap_vert,
+        icon: LucideIcons.arrow_up_down,
         title: 'Sin movimientos',
         message: 'Las entradas y salidas del turno aparecerán aquí.',
       );
@@ -356,7 +358,7 @@ class _MovementsTab extends ConsumerWidget {
         return ListTile(
           dense: true,
           leading: Icon(
-            isIn ? Icons.south_west : Icons.north_east,
+            isIn ? LucideIcons.arrow_down_left : LucideIcons.arrow_up_right,
             color: isIn ? colors.success : colors.error,
           ),
           title: Text(m.type.label),
@@ -386,7 +388,7 @@ class _SalesTab extends ConsumerWidget {
     final sales = ref.watch(sessionSalesProvider).valueOrNull ?? const <Sale>[];
     if (sales.isEmpty) {
       return const MbEmptyState(
-        icon: Icons.receipt_long_outlined,
+        icon: LucideIcons.receipt,
         title: 'Sin ventas en el turno',
       );
     }

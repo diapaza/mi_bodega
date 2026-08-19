@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../auth/domain/entities/auth.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../users/presentation/users_providers.dart';
@@ -27,21 +29,21 @@ class RolesListScreen extends ConsumerWidget {
           ? FloatingActionButton.extended(
               heroTag: 'roles-fab',
               onPressed: () => context.push('/roles/new'),
-              icon: const Icon(Icons.add),
+              icon: const Icon(LucideIcons.plus),
               label: const Text('Nuevo rol'),
             )
           : null,
       body: rolesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: MbLoading()),
         error: (e, _) => MbEmptyState(
-          icon: Icons.error_outline,
+          icon: LucideIcons.circle_alert,
           title: 'Error al cargar',
           message: '$e',
         ),
         data: (roles) {
           if (roles.isEmpty) {
             return const MbEmptyState(
-              icon: Icons.admin_panel_settings_outlined,
+              icon: LucideIcons.shield,
               title: 'Sin roles',
               message: 'No hay roles configurados.',
             );
@@ -73,7 +75,7 @@ class RolesListScreen extends ConsumerWidget {
                         const MbBadge('Inactivo', tone: MbBadgeTone.warning),
                       ],
                       const SizedBox(width: 4),
-                      const Icon(Icons.chevron_right),
+                      const Icon(LucideIcons.chevron_right),
                     ],
                   ),
                 ),
