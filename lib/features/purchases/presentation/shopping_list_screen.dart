@@ -5,6 +5,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gal/gal.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
+import 'package:gap/gap.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../core/money/money.dart';
@@ -12,6 +14,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/mb_confirm_dialog.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
 import '../../auth/presentation/session_controller.dart';
@@ -46,12 +49,12 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
           if (items.isNotEmpty) ...[
             IconButton(
               tooltip: 'Guardar como imagen',
-              icon: const Icon(Icons.image_outlined),
+              icon: const Icon(LucideIcons.image),
               onPressed: _saveAsImage,
             ),
             IconButton(
               tooltip: 'Mover a reabastecer',
-              icon: const Icon(Icons.shopping_cart_checkout),
+              icon: const Icon(LucideIcons.shopping_cart),
               onPressed: () => _moveToRestock(items),
             ),
           ],
@@ -60,14 +63,14 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'shopping-list-fab',
         onPressed: () => _addProduct(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Agregar'),
+icon: const Icon(LucideIcons.plus),
+         label: const Text('Agregar'),
       ),
       body: listAsync.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: MbLoading())
           : items.isEmpty
               ? const MbEmptyState(
-                  icon: Icons.shopping_bag_outlined,
+                  icon: LucideIcons.shopping_bag,
                   title: 'Lista vacía',
                   message:
                       'Agrega productos que necesites comprar. La lista se guarda automáticamente.',
@@ -123,16 +126,18 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                                             ),
                                           ),
                                           const SizedBox(width: 6),
-                                          Text(
+                                          Flexible(child: Text(
                                             status.label,
+                                            overflow: TextOverflow.ellipsis,
                                             style: theme.textTheme.bodySmall
                                                 ?.copyWith(color: status.color),
-                                          ),
+                                          )),
                                           const SizedBox(width: 8),
-                                          Text(
+                                          Flexible(child: Text(
                                             'Stock: ${fmtQty(stock)}',
+                                            overflow: TextOverflow.ellipsis,
                                             style: theme.textTheme.bodySmall,
-                                          ),
+                                          )),
                                         ],
                                       ),
                                       const SizedBox(height: 2),
@@ -150,19 +155,19 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                                   children: [
                                     IconButton(
                                       tooltip: '+1 unidad de compra',
-                                      icon: Icon(Icons.add_circle_outline,
-                                          size: 22, color: colorScheme.primary),
+icon: Icon(LucideIcons.circle_plus,
+                                           size: 22, color: colorScheme.primary),
                                       onPressed: () => _addPurchaseUnit(entry),
                                     ),
                                     IconButton(
                                       tooltip: 'Editar',
-                                      icon: const Icon(Icons.edit_outlined, size: 20),
+                                      icon: const Icon(LucideIcons.pencil, size: 20),
                                       onPressed: () => _editItem(context, entry),
                                     ),
                                     IconButton(
                                       tooltip: 'Eliminar',
-                                      icon: Icon(Icons.delete_outline,
-                                          size: 20, color: colorScheme.error),
+icon: Icon(LucideIcons.trash_2,
+                                           size: 20, color: colorScheme.error),
                                       onPressed: () => _removeItem(item),
                                     ),
                                   ],
@@ -173,12 +178,13 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  Text(
-                                    '${fmtQty(item.quantity!)} × ${p.purchasePrice.format()}',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                               Flexible(child: Text(
+                                     '${fmtQty(item.quantity!)} × ${p.purchasePrice.format()}',
+                                     overflow: TextOverflow.ellipsis,
+                                     style: theme.textTheme.bodySmall?.copyWith(
+                                       fontWeight: FontWeight.w600,
+                                     ),
+                                   )),
                                   const SizedBox(width: 8),
                                   Text(
                                     '= ${Money((item.quantity! * p.purchasePrice.cents).round()).format()}',
@@ -316,23 +322,31 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
       return;
     }
 
-    final selected = await showDialog<int>(
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
-      builder: (ctx) => _ProductPickerDialog(products: available),
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (ctx) => _AddProductSheet(products: available),
     );
-    if (selected == null || !mounted) return;
+    if (result == null || !mounted) return;
 
-    final result = await ref.read(shoppingListRepositoryProvider).addItem(
+    final productId = result['productId'] as int;
+    final quantity = result['quantity'] as double?;
+    final notes = result['notes'] as String?;
+
+    final res = await ref.read(shoppingListRepositoryProvider).addItem(
           ShoppingListItem(
             storeId: storeId,
-            productId: selected,
+            productId: productId,
+            quantity: quantity,
+            notes: notes?.isEmpty == true ? null : notes,
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
           ),
         );
     if (!mounted) return;
-    if (result.isErr) {
-      showMbSnack(context, result.failure!.message,
+    if (res.isErr) {
+      showMbSnack(context, res.failure!.message,
           variant: MbSnackVariant.error);
     }
   }
@@ -431,70 +445,266 @@ class _StockStatus {
   const _StockStatus(this.color, this.label);
 }
 
-class _ProductPickerDialog extends StatefulWidget {
+class _AddProductSheet extends StatefulWidget {
   final List<ProductStock> products;
-  const _ProductPickerDialog({required this.products});
+  const _AddProductSheet({required this.products});
 
   @override
-  State<_ProductPickerDialog> createState() => _ProductPickerDialogState();
+  State<_AddProductSheet> createState() => _AddProductSheetState();
 }
 
-class _ProductPickerDialogState extends State<_ProductPickerDialog> {
+class _AddProductSheetState extends State<_AddProductSheet> {
   String _search = '';
+  ProductStock? _selected;
+  final _quantityController = TextEditingController();
+  final _notesController = TextEditingController();
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = context.colors;
     final filtered = widget.products
         .where((ps) =>
             ps.product.name.toLowerCase().contains(_search.toLowerCase()))
         .toList()
       ..sort((a, b) => a.stock.compareTo(b.stock));
 
-    return AlertDialog(
-      title: const Text('Agregar producto'),
-      content: SizedBox(
-        width: double.maxFinite,
-        height: 400,
-        child: Column(
-          children: [
-            TextField(
-              decoration: const InputDecoration(
-                hintText: 'Buscar...',
-                isDense: true,
-                prefixIcon: Icon(Icons.search, size: 20),
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.75,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) => Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12),
+                decoration: BoxDecoration(
+                  color: colors.outline,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              onChanged: (v) => setState(() => _search = v),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: ListView.builder(
-                itemCount: filtered.length,
-                itemBuilder: (context, i) {
-                  final ps = filtered[i];
-                  return ListTile(
-                    leading: ProductImage(
-                      photoPath: ps.product.photoPath,
-                      width: 40,
-                      height: 40,
-                      borderRadius: 6,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Agregar producto',
+                        style: theme.textTheme.titleLarge,
+                      ),
                     ),
-                    title: Text(ps.product.name,
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                    subtitle: Text('Stock: ${ps.stock.toInt()}'),
-                    onTap: () => Navigator.pop(context, ps.product.id),
-                  );
-                },
+                    IconButton(
+                      icon: const Icon(LucideIcons.x),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: MbTextField(
+                  hint: 'Buscar producto...',
+                  prefixIcon: const Icon(LucideIcons.search, size: 20),
+                  onChanged: (v) => setState(() => _search = v),
+                ),
+              ),
+              const Gap(8),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, i) {
+                    final ps = filtered[i];
+                    final p = ps.product;
+                    final isSelected = _selected?.product.id == p.id;
+                    final stockStatus = _getStockStatus(ps.stock, p, colors);
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Material(
+                        color: isSelected
+                            ? colors.primaryContainer.withValues(alpha: 0.3)
+                            : colors.surface,
+                        borderRadius: BorderRadius.circular(10),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () => setState(() {
+                            _selected = isSelected ? null : ps;
+                            _quantityController.clear();
+                            _notesController.clear();
+                          }),
+                          child: Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Row(
+                              children: [
+                                ProductImage(
+                                  photoPath: p.photoPath,
+                                  width: 44,
+                                  height: 44,
+                                  borderRadius: 8,
+                                ),
+                                const Gap(10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        p.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.titleSmall,
+                                      ),
+                                      const Gap(2),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 6,
+                                            height: 6,
+                                            decoration: BoxDecoration(
+                                              color: stockStatus.color,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const Gap(4),
+                                          Text(
+                                            stockStatus.label,
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                    color: stockStatus.color),
+                                          ),
+                                          const Gap(8),
+                                          Text(
+                                            'Stock: ${fmtQty(ps.stock)}',
+                                            style: theme.textTheme.bodySmall,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  p.purchasePrice.format(),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (isSelected) ...[
+                                  const Gap(8),
+                                  Icon(LucideIcons.circle_check,
+                                      size: 20, color: colors.primary),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              if (_selected != null)
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    border: Border(
+                      top: BorderSide(color: colors.outlineVariant),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(LucideIcons.circle_check,
+                              size: 16, color: colors.primary),
+                          const Gap(6),
+                          Expanded(
+                            child: Text(
+                              _selected!.product.name,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: colors.primary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Gap(10),
+                      MbTextField(
+                        controller: _quantityController,
+                        label: 'Cantidad (opcional)',
+                        keyboardType:
+                            const TextInputType.numberWithOptions(decimal: true),
+                      ),
+                      const Gap(8),
+                      MbTextField(
+                        controller: _notesController,
+                        label: 'Notas (opcional)',
+                      ),
+                      const Gap(12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancelar'),
+                            ),
+                          ),
+                          const Gap(12),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: () {
+                                Navigator.pop(context, {
+                                  'productId': _selected!.product.id,
+                                  'quantity': double.tryParse(
+                                      _quantityController.text),
+                                  'notes': _notesController.text,
+                                });
+                              },
+                              child: const Text('Agregar'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-      ],
     );
+  }
+
+  _StockStatus _getStockStatus(double stock, Product p, AppColors colors) {
+    if (stock < 0.0001) {
+      return _StockStatus(colors.error, 'Agotado');
+    }
+    if (stock <= p.stockMin) {
+      return _StockStatus(colors.warning, 'Stock bajo');
+    }
+    if (p.stockMax != null && stock > p.stockMax!) {
+      return _StockStatus(colors.info, 'Sobrestock');
+    }
+    return _StockStatus(colors.success, 'Normal');
   }
 }

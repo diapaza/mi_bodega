@@ -2,13 +2,16 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/money/money.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_loading.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../catalog/presentation/catalog_providers.dart';
 import '../../products/domain/entities/product.dart';
@@ -63,7 +66,7 @@ class InventoryScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: 'Historial de movimientos',
-            icon: const Icon(Icons.receipt_long_outlined),
+            icon: const Icon(LucideIcons.clock),
             onPressed: () => context.push('/inventory/movements'),
           ),
         ],
@@ -76,14 +79,14 @@ class InventoryScreen extends ConsumerWidget {
                 FloatingActionButton.extended(
                   heroTag: 'shopping-list-fab',
                   onPressed: () => context.push('/shopping-list'),
-                  icon: const Icon(Icons.shopping_bag_outlined),
+                  icon: const Icon(LucideIcons.shopping_bag),
                   label: const Text('Lista de compras'),
                 ),
-                const SizedBox(height: 8),
+                const Gap(8),
                 FloatingActionButton.extended(
                   heroTag: 'inventory-fab',
                   onPressed: () => context.push('/purchases/new'),
-                  icon: const Icon(Icons.add_shopping_cart),
+                  icon: const Icon(LucideIcons.package_plus),
                   label: const Text('Reabastecer'),
                 ),
               ],
@@ -98,8 +101,8 @@ class InventoryScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(14),
                 child: Row(
                   children: [
-                    Icon(Icons.payments_outlined, color: colors.primary, size: 34),
-                    const SizedBox(width: 12),
+                    Icon(LucideIcons.banknote, color: colors.primary, size: 34),
+                    const Gap(12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,9 +121,9 @@ class InventoryScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         _CountBadge(label: 'Bajo', count: low.length, tone: MbBadgeTone.warning),
-                        const SizedBox(height: 4),
+                        const Gap(4),
                         _CountBadge(label: 'Agotados', count: out.length, tone: MbBadgeTone.error),
-                        const SizedBox(height: 4),
+                        const Gap(4),
                         _CountBadge(label: 'Exceso', count: excess.length, tone: MbBadgeTone.info),
                       ],
                     ),
@@ -135,10 +138,10 @@ class InventoryScreen extends ConsumerWidget {
               onChanged: (v) => ref.read(inventorySearchProvider.notifier).state = v.trim(),
               decoration: InputDecoration(
                 hintText: 'Buscar por nombre, SKU o código',
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(LucideIcons.search),
                 suffixIcon: searchText.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear),
+                        icon: const Icon(LucideIcons.x),
                         onPressed: () => ref.read(inventorySearchProvider.notifier).state = '',
                       )
                     : null,
@@ -180,13 +183,13 @@ class InventoryScreen extends ConsumerWidget {
                 ref.invalidate(excessStockProvider);
               },
               child: productsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: MbLoading()),
               error: (e, _) => Center(child: Text('Error: $e')),
               data: (all) {
                 final items = filtered(all);
                 if (items.isEmpty) {
                   return MbEmptyState(
-                    icon: Icons.inventory_2_outlined,
+                    icon: LucideIcons.package,
                     title: filter == InventoryFilter.all
                         ? 'Sin productos en inventario'
                         : 'Sin productos en esta categoría',
@@ -196,70 +199,101 @@ class InventoryScreen extends ConsumerWidget {
                 return ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: items.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  separatorBuilder: (_, _) => const Gap(8),
                   itemBuilder: (context, i) {
                     final item = items[i];
                     final p = item.product;
                     final lineValue = Money((item.stock * p.costPrice.cents).round());
+                    final stockBadge = item.outOfStock
+                        ? const MbBadge('Agotado', tone: MbBadgeTone.error)
+                        : item.lowStock
+                            ? const MbBadge('Stock bajo', tone: MbBadgeTone.warning)
+                            : null;
+                    final minMaxText = 'min ${fmtQty(p.stockMin)}'
+                        '${p.stockMax != null ? ' · max ${fmtQty(p.stockMax!)}' : ''}';
                     return Card(
-                      child: ListTile(
-                        onTap: () =>
-                            context.push('/products/${p.id}'),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        title: Text(
-                          p.name,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                        subtitle: Text(
-                          'Costo ${Money(p.costPrice.cents).format()} · '
-                          'Valor ${lineValue.format()}',
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '${fmtQty(item.stock)} ${unitSymbol(p.baseUnitId)}',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: colors.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'min ${fmtQty(p.stockMin)}'
-                              '${p.stockMax != null ? ' · max ${fmtQty(p.stockMax!)}' : ''}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colors.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            if (canAdjust)
-                              PopupMenuButton<String>(
-                                icon: Icon(Icons.more_vert,
-                                    color: colors.onSurfaceVariant, size: 20),
-                                itemBuilder: (_) => const [
-                                  PopupMenuItem(
-                                      value: 'movements',
-                                      child: Text('Historial')),
-                                  PopupMenuItem(
-                                      value: 'adjust', child: Text('Ajustar')),
+                      child: InkWell(
+                        onTap: () => context.push('/products/${p.id}'),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      p.name,
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                      style: theme.textTheme.titleMedium,
+                                    ),
+                                  ),
+                                  if (stockBadge != null) ...[
+                                    const Gap(8),
+                                    stockBadge,
+                                  ],
                                 ],
-                                onSelected: (v) {
-                                  if (v == 'movements') {
-                                    context.push(
-                                        '/inventory/${p.id}/movements');
-                                  }
-                                  if (v == 'adjust') {
-                                    context.push(
-                                        '/inventory/${p.id}/adjust');
-                                  }
-                                },
                               ),
-                          ],
+                              const Gap(4),
+                              Text(
+                                '${fmtQty(item.stock)} ${unitSymbol(p.baseUnitId)}',
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  color: colors.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const Divider(height: 20),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _DataColumn(
+                                      label: 'Costo unitario',
+                                      value: Money(p.costPrice.cents).format(),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _DataColumn(
+                                      label: 'Valor inventario',
+                                      value: lineValue.format(),
+                                      valueColor: colors.success,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Gap(8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _DataColumn(
+                                      label: 'Límites',
+                                      value: minMaxText,
+                                      valueColor: colors.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  if (canAdjust)
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        _InventoryActionChip(
+                                          icon: LucideIcons.clock,
+                                          label: 'Historial',
+                                          onTap: () => context.push('/inventory/${p.id}/movements'),
+                                        ),
+                                        const Gap(8),
+                                        _InventoryActionChip(
+                                          icon: LucideIcons.wrench,
+                                          label: 'Ajustar',
+                                          onTap: () => context.push('/inventory/${p.id}/adjust'),
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        isThreeLine: true,
                       ),
                     ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.05);
                   },
@@ -291,9 +325,84 @@ class _CountBadge extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(label, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(width: 4),
+        const Gap(4),
         MbBadge('$count', tone: tone),
       ],
+    );
+  }
+}
+
+class _DataColumn extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  const _DataColumn({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+        ),
+        const Gap(2),
+        Text(
+          value,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: valueColor ?? colors.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InventoryActionChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _InventoryActionChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 24, color: colors.primary),
+            const Gap(4),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: colors.primary,
+                  ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
