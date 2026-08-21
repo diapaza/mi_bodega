@@ -335,40 +335,107 @@ class _SaleCard extends ConsumerWidget {
     final colors = context.colors;
 
     return Card(
-      child: ListTile(
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
         onTap: () => showModalBottomSheet(
           context: context,
           isScrollControlled: true,
           useSafeArea: true,
           builder: (_) => _SaleDetailSheet(saleId: sale.id!),
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Row(
-          children: [
-            Text(sale.saleNumber, style: theme.textTheme.titleSmall),
-            if (sale.status == SaleStatus.cancelled) ...[
-              const SizedBox(width: 8),
-              const MbBadge('Anulada', tone: MbBadgeTone.error),
-            ],
-          ],
-        ),
-        subtitle: Text(
-          '${fmtDate(sale.saleDate)} · $sellerName · ${sale.paymentMethod.label}',
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              sale.total.format(),
-              style: theme.textTheme.titleSmall?.copyWith(color: colors.primary),
-            ),
-            if (sale.discount.cents > 0)
-              Text(
-                'Desc. ${sale.discount.format()}',
-                style: theme.textTheme.bodySmall?.copyWith(color: colors.warning),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(LucideIcons.receipt, size: 18, color: colors.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        sale.saleNumber,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (sale.status == SaleStatus.cancelled) ...[
+                        const SizedBox(width: 8),
+                        const MbBadge('Anulada', tone: MbBadgeTone.error),
+                      ],
+                    ],
+                  ),
+                  MbBadge(
+                    sale.paymentMethod.label,
+                    tone: MbBadgeTone.info,
+                  ),
+                ],
               ),
-          ],
+              const Divider(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(LucideIcons.calendar, size: 14, color: colors.onSurfaceVariant),
+                            const SizedBox(width: 6),
+                            Text(
+                              fmtDate(sale.saleDate),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(LucideIcons.user, size: 14, color: colors.onSurfaceVariant),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Vendedor: $sellerName',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (sale.discount.cents > 0) ...[
+                        Text(
+                          'Desc. ${sale.discount.format()}',
+                          style: theme.textTheme.bodySmall?.copyWith(color: colors.warning),
+                        ),
+                        const SizedBox(height: 2),
+                      ],
+                      Text(
+                        sale.total.format(),
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: sale.status == SaleStatus.cancelled
+                              ? colors.onSurfaceVariant
+                              : colors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
