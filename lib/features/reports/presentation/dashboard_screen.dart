@@ -6,8 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/money/money.dart';
 import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
+import '../../../shared/widgets/mb_card.dart';
+import '../../../shared/widgets/mb_money_text.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../cash/presentation/cash_providers.dart';
 import '../../inventory/presentation/inventory_providers.dart';
@@ -47,37 +50,38 @@ class DashboardScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            _MetricCard(
+              label: 'VENTAS HOY',
+              money: today?.revenue,
+              value: today?.revenue.format(),
+              loading: todayAsync.isLoading,
+              caption: '${today?.count ?? 0} venta${today?.count == 1 ? '' : 's'} concretada${today?.count == 1 ? '' : 's'}',
+              isHero: true,
+            ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.05),
+            const Gap(12),
             Row(
               children: [
                 Expanded(
                   child: _MetricCard(
-                    label: 'Ventas hoy',
-                    value: today?.revenue.format(),
+                    label: 'Ganancia hoy',
+                    money: today?.grossProfit,
+                    value: today?.grossProfit.format(),
                     loading: todayAsync.isLoading,
-                    caption:
-                        '${today?.count ?? 0} venta${today?.count == 1 ? '' : 's'}',
+                    caption: 'Ingresos − Costos',
+                    highlight: true,
                   ),
                 ),
                 const Gap(12),
                 Expanded(
                   child: _MetricCard(
-                    label: 'Ganancia bruta hoy',
-                    value: today?.grossProfit.format(),
-                    loading: todayAsync.isLoading,
-                    caption: 'ingresos − costo',
-                    highlight: true,
+                    label: 'Ventas del mes',
+                    money: month?.revenue,
+                    value: month?.revenue.format(),
+                    loading: monthAsync.isLoading,
+                    caption: '${month?.count ?? 0} ventas',
                   ),
                 ),
               ],
-            ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.05),
-            Gap(12),
-            _MetricCard(
-              label: 'Ventas del mes',
-              value: month?.revenue.format(),
-              loading: monthAsync.isLoading,
-              caption:
-                  '${month?.count ?? 0} venta${month?.count == 1 ? '' : 's'}'
-                  ' · ganancia ${month?.grossProfit.format() ?? 'S/ 0.00'}',
             ).animate().fadeIn(duration: 300.ms, delay: 100.ms).slideY(begin: 0.05),
             Gap(12),
             Card(
@@ -164,28 +168,38 @@ class DashboardScreen extends ConsumerWidget {
                 message: 'Las ventas del día aparecerán aquí.',
               )
             else
-              for (final s in recent)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: s.status == SaleStatus.cancelled
-                      ? const MbBadge('Anulada', tone: MbBadgeTone.error)
-                      : const MbBadge('Venta', tone: MbBadgeTone.success),
-                  title: Text(s.saleNumber),
-                  subtitle: Text(
-                    '${s.saleDate.hour.toString().padLeft(2, '0')}:'
-                    '${s.saleDate.minute.toString().padLeft(2, '0')} · '
-                    '${s.paymentMethod.label}',
-                  ),
-                  trailing: Text(
-                    s.total.format(),
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: s.status == SaleStatus.cancelled
-                          ? colors.onSurfaceVariant
-                          : colors.primary,
-                    ),
-                  ),
+              MbCard(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (int i = 0; i < recent.length; i++) ...[
+                      if (i > 0) const Divider(height: 1),
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: recent[i].status == SaleStatus.cancelled
+                            ? const MbBadge('Anulada', tone: MbBadgeTone.error)
+                            : const MbBadge('Venta', tone: MbBadgeTone.success),
+                        title: Text(recent[i].saleNumber),
+                        subtitle: Text(
+                          '${recent[i].saleDate.hour.toString().padLeft(2, '0')}:'
+                          '${recent[i].saleDate.minute.toString().padLeft(2, '0')} · '
+                          '${recent[i].paymentMethod.label}',
+                        ),
+                        trailing: Text(
+                          recent[i].total.format(),
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: recent[i].status == SaleStatus.cancelled
+                                ? colors.onSurfaceVariant
+                                : colors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
+              ),
           ],
         ),
       ),
@@ -196,51 +210,149 @@ class DashboardScreen extends ConsumerWidget {
 class _MetricCard extends StatelessWidget {
   final String label;
   final String? value;
+  final Money? money;
   final String caption;
   final bool highlight;
   final bool loading;
+  final bool isHero;
 
   const _MetricCard({
     required this.label,
     this.value,
+    this.money,
     required this.caption,
     this.highlight = false,
     this.loading = false,
+    this.isHero = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = context.colors;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
+
+    if (isHero) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFF6B00), Color(0xFFFF8800)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF6B00).withOpacity(0.25),
+              blurRadius: 15,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: theme.textTheme.bodySmall),
-            Gap(4),
+            Text(
+              label,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: const Color(0xFFF1F5F9),
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.1,
+              ),
+            ),
+            const Gap(8),
             if (loading)
               Container(
                 width: 80,
-                height: 28,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              )
+            else if (money != null)
+              MbMoneyText(
+                money!,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+                currencyStyle: theme.textTheme.titleMedium?.copyWith(
+                  color: const Color(0xFFF1F5F9),
+                  fontWeight: FontWeight.w400,
+                ),
+              )
+            else
+              Text(
+                value ?? '—',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            const Gap(6),
+            Text(
+              caption,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: const Color(0xFFF1F5F9),
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Card(
+      color: highlight
+          ? colors.primaryContainer.withOpacity(0.2)
+          : colors.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: const Color(0xFF64748B),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Gap(6),
+            if (loading)
+              Container(
+                width: 80,
+                height: 24,
                 decoration: BoxDecoration(
                   color: colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(6),
                 ),
               )
+            else if (money != null)
+              MbMoneyText(
+                money!,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: const Color(0xFF0F172A),
+                  fontWeight: FontWeight.bold,
+                ),
+              )
             else
-            Text(
-              value ?? '—',
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: highlight ? colors.success : colors.primary,
-                fontWeight: FontWeight.w700,
+              Text(
+                value ?? '—',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: const Color(0xFF0F172A),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
+            const Gap(4),
             Text(
               caption,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: colors.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: const Color(0xFF64748B),
+                fontSize: 12,
+              ),
             ),
           ],
         ),
