@@ -62,6 +62,10 @@ class AppTheme {
       onSecondary: c.onSecondary,
       secondaryContainer: c.secondaryContainer,
       onSecondaryContainer: c.onSecondaryContainer,
+      tertiary: c.tertiary,
+      onTertiary: c.onTertiary,
+      tertiaryContainer: c.tertiaryContainer,
+      onTertiaryContainer: c.onTertiaryContainer,
       error: c.error,
       onError: c.onError,
       errorContainer: c.errorContainer,
@@ -90,7 +94,7 @@ class AppTheme {
       textTheme: textTheme,
       extensions: [c],
       appBarTheme: AppBarTheme(
-        backgroundColor: c.surface,
+        backgroundColor: c.background,
         foregroundColor: c.onSurface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -103,27 +107,31 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: c.surface,
-        elevation: 0,
+        elevation: 2,
         margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shadowColor: Colors.black.withOpacity(0.12),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: c.surface,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: c.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: c.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: c.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: c.error),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -131,19 +139,38 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(64, 48),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 0,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(64, 48),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          side: BorderSide(color: c.outline, width: 1.5),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: c.surfaceContainer,
-        indicatorColor: c.primaryContainer,
-        surfaceTintColor: Colors.transparent,
+        backgroundColor: c == AppColors.light ? Colors.white : c.surface,
+        elevation: 8,
+        indicatorColor: Colors.transparent,
+        indicatorShape: const StadiumBorder(),
+        iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
+          if (states.contains(WidgetState.selected)) {
+            return IconThemeData(color: c == AppColors.light ? const Color(0xFFE65100) : c.primary);
+          }
+          return IconThemeData(color: c.onSurfaceVariant);
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
+          if (states.contains(WidgetState.selected)) {
+            return TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: c == AppColors.light ? const Color(0xFFE65100) : c.primary,
+            );
+          }
+          return TextStyle(fontSize: 12, color: c.onSurfaceVariant);
+        }),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
