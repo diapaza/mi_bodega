@@ -186,7 +186,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 title: const Text('Caja'),
                 onTap: () {
                   Navigator.pop(context);
-                  context.go('/cash');
+                  context.push('/cash');
                 },
               ),
             if (session.can('customers.view'))
@@ -195,7 +195,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 title: const Text('Clientes'),
                 onTap: () {
                   Navigator.pop(context);
-                  context.go('/customers');
+                  context.push('/customers');
                 },
               ),
             if (session.can('purchases.view'))
@@ -204,7 +204,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 title: const Text('Compras'),
                 onTap: () {
                   Navigator.pop(context);
-                  context.go('/purchases');
+                  context.push('/purchases');
                 },
               ),
             if (session.can('suppliers.manage'))
@@ -213,7 +213,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 title: const Text('Proveedores'),
                 onTap: () {
                   Navigator.pop(context);
-                  context.go('/suppliers');
+                  context.push('/suppliers');
                 },
               ),
             // --- Administración ---
@@ -224,7 +224,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 title: const Text('Usuarios'),
                 onTap: () {
                   Navigator.pop(context);
-                  context.go('/users');
+                  context.push('/users');
                 },
               ),
             if (session.can('reports.view'))
@@ -233,7 +233,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 title: const Text('Reportes'),
                 onTap: () {
                   Navigator.pop(context);
-                  context.go('/reports');
+                  context.push('/reports');
                 },
               ),
             if (session.can('roles.view'))
@@ -242,7 +242,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 title: const Text('Roles y permisos'),
                 onTap: () {
                   Navigator.pop(context);
-                  context.go('/roles');
+                  context.push('/roles');
                 },
               ),
             // --- Sistema ---
@@ -253,7 +253,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 title: const Text('Configuración'),
                 onTap: () {
                   Navigator.pop(context);
-                  context.go('/settings');
+                  context.push('/settings');
                 },
               ),
             if (session.can('backup.create'))
@@ -262,7 +262,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 title: const Text('Respaldo'),
                 onTap: () {
                   Navigator.pop(context);
-                  context.go('/backup');
+                  context.push('/backup');
                 },
               ),
             const Divider(height: 1),

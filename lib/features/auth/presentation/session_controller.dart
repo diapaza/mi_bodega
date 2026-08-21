@@ -43,6 +43,9 @@ class SessionController extends AsyncNotifier<SessionState> {
 
   @override
   Future<SessionState> build() async {
+    // Yield a frame to let the CircularProgressIndicator start spinning smoothly
+    await Future.delayed(const Duration(milliseconds: 150));
+
     final storeResult = await ref.read(storeRepositoryProvider).getStore();
     _store = storeResult.orNull;
     if (_store == null) {
