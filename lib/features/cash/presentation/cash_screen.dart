@@ -8,7 +8,6 @@ import '../../../core/di/app_providers.dart';
 import '../../../core/money/money.dart';
 import '../../../core/security/permission_guard.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../shared/widgets/mb_badge.dart';
 import '../../../shared/widgets/mb_empty_state.dart';
 import '../../../shared/widgets/mb_snackbar.dart';
 import '../../../shared/widgets/mb_text_field.dart';
@@ -39,6 +38,13 @@ class CashScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Caja'),
+        leading: context.canPop()
+            ? const BackButton()
+            : IconButton(
+                tooltip: 'Inicio',
+                icon: const Icon(Icons.home),
+                onPressed: () => context.go('/'),
+              ),
         actions: [
           IconButton(
             tooltip: 'Historial de turnos',
@@ -150,86 +156,200 @@ class _OpenState extends ConsumerWidget {
     return DefaultTabController(
       length: 2,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const MbBadge('Caja abierta', tone: MbBadgeTone.success),
-                        const Spacer(),
-                        Text(
-                          fmtDate(session.openingDate),
-                          style: theme.textTheme.bodySmall,
-                        ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        colors.success.withValues(alpha: 0.12),
+                        colors.success.withValues(alpha: 0.04),
                       ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    const Gap(8),
-                    Text('Responsable: ${opener?.fullName ?? '—'}'),
-                    Text('Apertura: ${session.openingAmount.format()}'),
-                    const Gap(8),
-                    Text('Efectivo esperado', style: theme.textTheme.bodySmall),
-                    Text(
-                      expected.format(),
-                      style: theme.textTheme.headlineMedium
-                          ?.copyWith(color: colors.primary),
-                    ),
-                    const Gap(12),
-                    if (canManage)
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: colors.success.withValues(alpha: 0.25)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => _manualMovement(context, ref, CashMovementType.cashIn),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: colors.success,
-                                minimumSize: const Size(0, 44),
+                          Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: colors.success,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                              child: const Text('Ingreso'),
-                            ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Caja abierta · Turno activo',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: colors.success,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                          const Gap(8),
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => _manualMovement(context, ref, CashMovementType.cashOut),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: colors.error,
-                                minimumSize: const Size(0, 44),
-                              ),
-                              child: const Text('Retiro'),
+                          Text(
+                            fmtDate(session.openingDate),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colors.onSurfaceVariant,
                             ),
                           ),
                         ],
                       ),
-                    if (canClose) ...[
-                      const Gap(8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed: () => showDialog(
-                            context: context,
-                            builder: (_) => CashCloseDialog(
-                              sessionId: session.id!,
-                              summary: summaryAsync.valueOrNull,
-                              canAuthorize: canAuthorize,
+                      const Divider(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'EFECTIVO ESPERADO',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: colors.onSurfaceVariant,
+                                  letterSpacing: 1.1,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                expected.format(),
+                                style: theme.textTheme.headlineMedium?.copyWith(
+                                  color: colors.success,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Icon(
+                            LucideIcons.banknote,
+                            size: 38,
+                            color: colors.success.withValues(alpha: 0.4),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Responsable',
+                                  style: theme.textTheme.labelSmall?.copyWith(color: colors.onSurfaceVariant),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  opener?.fullName ?? '—',
+                                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
                           ),
-                          icon: const Icon(LucideIcons.lock, size: 18),
-                          label: const Text('Cerrar caja'),
+                          Container(width: 1, height: 24, color: colors.outlineVariant),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Monto Apertura',
+                                  style: theme.textTheme.labelSmall?.copyWith(color: colors.onSurfaceVariant),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  session.openingAmount.format(),
+                                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (canManage)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () => _manualMovement(context, ref, CashMovementType.cashIn),
+                          icon: const Icon(LucideIcons.arrow_down_left, size: 18),
+                          label: const Text('Ingreso'),
                           style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 44),
+                            backgroundColor: colors.successContainer,
+                            foregroundColor: colors.onSuccessContainer,
+                            minimumSize: const Size(0, 46),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () => _manualMovement(context, ref, CashMovementType.cashOut),
+                          icon: const Icon(LucideIcons.arrow_up_right, size: 18),
+                          label: const Text('Retiro'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: colors.errorContainer,
+                            foregroundColor: colors.onErrorContainer,
+                            minimumSize: const Size(0, 46),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
                       ),
                     ],
-                  ],
-                ),
-              ),
+                  ),
+                if (canClose) ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => showDialog(
+                        context: context,
+                        builder: (_) => CashCloseDialog(
+                          sessionId: session.id!,
+                          summary: summaryAsync.valueOrNull,
+                          canAuthorize: canAuthorize,
+                        ),
+                      ),
+                      icon: const Icon(LucideIcons.lock, size: 18),
+                      label: const Text('Cerrar Caja'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 46),
+                        side: BorderSide(color: colors.primary, width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           _ByMethodBreakdown(),
@@ -311,21 +431,74 @@ class _ByMethodBreakdown extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final colors = context.colors;
     final byMethod = ref.watch(salesByMethodProvider).valueOrNull ?? const {};
     if (byMethod.isEmpty) return const SizedBox.shrink();
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final entry in byMethod.entries)
-            Chip(
-              label: Text(
-                '${entry.key.label}: ${entry.value.format()}',
-                style: theme.textTheme.labelMedium,
-              ),
-            ),
+          Text(
+            'Resumen por método de pago',
+            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final entry in byMethod.entries) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: colors.outlineVariant),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        entry.key == PaymentMethod.cash
+                            ? LucideIcons.banknote
+                            : entry.key == PaymentMethod.card
+                                ? LucideIcons.credit_card
+                                : LucideIcons.wallet,
+                        color: colors.primary,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            entry.key.label,
+                            style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                          ),
+                          Text(
+                            entry.value.format(),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colors.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
         ],
       ),
     );
@@ -350,27 +523,88 @@ class _MovementsTab extends ConsumerWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: movements.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, i) {
         final entry = movements[i];
         final m = entry.movement;
         final isIn = !m.amount.isNegative;
-        return ListTile(
-          dense: true,
-          leading: Icon(
-            isIn ? LucideIcons.arrow_down_left : LucideIcons.arrow_up_right,
-            color: isIn ? colors.success : colors.error,
-          ),
-          title: Text(m.type.label),
-          subtitle: Text(
-            [if (m.note != null && m.note!.isNotEmpty) m.note, entry.userName]
-                .whereType<String>()
-                .join(' · '),
-          ),
-          trailing: Text(
-            '${isIn ? '+' : ''}${m.amount.format()}',
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: isIn ? colors.success : colors.error,
+        final dateStr = '${m.createdAt.hour.toString().padLeft(2, '0')}:${m.createdAt.minute.toString().padLeft(2, '0')}';
+
+        return Card(
+          margin: EdgeInsets.zero,
+          elevation: 1,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isIn ? colors.success.withValues(alpha: 0.1) : colors.error.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isIn ? LucideIcons.arrow_down_left : LucideIcons.arrow_up_right,
+                    color: isIn ? colors.success : colors.error,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            m.type.label,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '${isIn ? '+' : ''}${m.amount.format()}',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: isIn ? colors.success : colors.error,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      if (m.note != null && m.note!.isNotEmpty) ...[
+                        Text(
+                          m.note!,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colors.onSurface,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      Row(
+                        children: [
+                          Icon(LucideIcons.user, size: 12, color: colors.onSurfaceVariant),
+                          const SizedBox(width: 4),
+                          Text(
+                            entry.userName ?? '—',
+                            style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(LucideIcons.clock, size: 12, color: colors.onSurfaceVariant),
+                          const SizedBox(width: 4),
+                          Text(
+                            dateStr,
+                            style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -385,6 +619,7 @@ class _SalesTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final colors = context.colors;
     final sales = ref.watch(sessionSalesProvider).valueOrNull ?? const <Sale>[];
     if (sales.isEmpty) {
       return const MbEmptyState(
@@ -395,16 +630,76 @@ class _SalesTab extends ConsumerWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: sales.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, i) {
         final s = sales[i];
-        return ListTile(
-          dense: true,
-          title: Text(s.saleNumber),
-          subtitle: Text(s.paymentMethod.label),
-          trailing: Text(
-            s.total.format(),
-            style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+        final timeStr = '${s.saleDate.hour.toString().padLeft(2, '0')}:${s.saleDate.minute.toString().padLeft(2, '0')}';
+        return Card(
+          margin: EdgeInsets.zero,
+          elevation: 1,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: colors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    LucideIcons.shopping_bag,
+                    color: colors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            s.saleNumber,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            s.total.format(),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: colors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(LucideIcons.credit_card, size: 12, color: colors.onSurfaceVariant),
+                          const SizedBox(width: 4),
+                          Text(
+                            s.paymentMethod.label,
+                            style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                          ),
+                          const SizedBox(width: 12),
+                          Icon(LucideIcons.clock, size: 12, color: colors.onSurfaceVariant),
+                          const SizedBox(width: 4),
+                          Text(
+                            timeStr,
+                            style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
