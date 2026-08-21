@@ -3,8 +3,10 @@ import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/mb_badge.dart';
+import '../../../../shared/widgets/mb_money_text.dart';
 import '../../domain/entities/product.dart';
 import 'product_image.dart';
+
 
 /// Tarjeta de producto en vista grid.
 class ProductCard extends StatelessWidget {
@@ -81,10 +83,11 @@ class ProductCard extends StatelessWidget {
                     style: theme.textTheme.titleSmall,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    p.salePrice.format(),
+                  MbMoneyText(
+                    p.salePrice,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: colors.primary,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 6),

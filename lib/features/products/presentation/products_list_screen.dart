@@ -185,7 +185,7 @@ class _ProductsListScreenState extends ConsumerState<ProductsListScreen> {
                       maxCrossAxisExtent: 200,
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      childAspectRatio: 0.82,
+                      childAspectRatio: 0.95,
                     ),
                     itemCount: products.length,
                     itemBuilder: (context, i) {
