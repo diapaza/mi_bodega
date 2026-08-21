@@ -17,10 +17,10 @@ class MbBadge extends StatelessWidget {
     final (bg, fg) = switch (tone) {
       MbBadgeTone.neutral => (colors.surfaceVariant, colors.onSurfaceVariant),
       MbBadgeTone.primary => (colors.primaryContainer, colors.onPrimaryContainer),
-      MbBadgeTone.success => (colors.successContainer, colors.success),
-      MbBadgeTone.warning => (colors.warningContainer, colors.warning),
-      MbBadgeTone.error => (colors.errorContainer, colors.error),
-      MbBadgeTone.info => (colors.infoContainer, colors.info),
+      MbBadgeTone.success => (colors.successContainer, colors.onSuccessContainer),
+      MbBadgeTone.warning => (colors.warningContainer, colors.onWarningContainer),
+      MbBadgeTone.error => (colors.errorContainer, colors.onErrorContainer),
+      MbBadgeTone.info => (colors.infoContainer, colors.onInfoContainer),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

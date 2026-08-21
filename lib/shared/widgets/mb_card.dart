@@ -20,15 +20,31 @@ class MbCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final card = Card(
+    final decoration = BoxDecoration(
       color: color ?? colors.surface,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 15,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    );
+
+    final content = Container(
+      decoration: decoration,
       child: Padding(padding: padding, child: child),
     );
-    if (onTap == null) return card;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: card,
+
+    if (onTap == null) return content;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: content,
+      ),
     );
   }
 }

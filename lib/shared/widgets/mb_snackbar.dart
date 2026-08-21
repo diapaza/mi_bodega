@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:toastification/toastification.dart';
+import '../../core/theme/app_colors.dart';
 
 enum MbSnackVariant { success, error, info, warning }
 
@@ -12,23 +13,48 @@ void showMbSnack(
   String? actionLabel,
   VoidCallback? onAction,
 }) {
-  final (type, icon) = switch (variant) {
-    MbSnackVariant.success => (ToastificationType.success, LucideIcons.circle_check),
-    MbSnackVariant.error => (ToastificationType.error, LucideIcons.circle_x),
-    MbSnackVariant.info => (ToastificationType.info, LucideIcons.info),
-    MbSnackVariant.warning => (ToastificationType.warning, LucideIcons.triangle_alert),
+  final colors = Theme.of(context).extension<AppColors>() ?? AppColors.light;
+
+  final (type, icon, bg, fg) = switch (variant) {
+    MbSnackVariant.success => (
+        ToastificationType.success,
+        LucideIcons.circle_check,
+        colors.successContainer,
+        colors.success
+      ),
+    MbSnackVariant.error => (
+        ToastificationType.error,
+        LucideIcons.circle_x,
+        colors.errorContainer,
+        colors.error
+      ),
+    MbSnackVariant.info => (
+        ToastificationType.info,
+        LucideIcons.info,
+        colors.secondaryContainer,
+        colors.secondary
+      ),
+    MbSnackVariant.warning => (
+        ToastificationType.warning,
+        LucideIcons.triangle_alert,
+        colors.warningContainer,
+        colors.warning
+      ),
   };
 
   toastification.show(
     context: context,
     type: type,
-    style: ToastificationStyle.fillColored,
+    style: ToastificationStyle.flatColored,
     title: Text(message),
-    icon: Icon(icon, color: Colors.white),
+    primaryColor: fg,
+    backgroundColor: bg,
+    foregroundColor: colors.onSurface,
+    icon: Icon(icon, color: fg),
     alignment: Alignment.topCenter,
     autoCloseDuration: const Duration(seconds: 3),
     animationDuration: const Duration(milliseconds: 300),
-    borderRadius: BorderRadius.circular(10),
+    borderRadius: BorderRadius.circular(12),
     closeButtonShowType: CloseButtonShowType.none,
   );
 }

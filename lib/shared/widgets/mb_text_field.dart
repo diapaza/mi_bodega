@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
+import '../../core/theme/app_colors.dart';
 
 /// Campo de texto reutilizable de MiBodega.
 class MbTextField extends StatefulWidget {
@@ -95,7 +96,26 @@ class _MbTextFieldState extends State<MbTextField> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.extension<AppColors>() ?? AppColors.light;
     final showToggle = widget.obscureText && widget.showPasswordToggle;
+
+    Widget? suffixIcon;
+    if (showToggle) {
+      suffixIcon = IconButton(
+        icon: Icon(
+          _obscured ? LucideIcons.eye_off : LucideIcons.eye,
+          color: _focusNode.hasFocus ? colors.primary : colors.outline,
+        ),
+        onPressed: () => setState(() => _obscured = !_obscured),
+      );
+    } else if (widget.errorText != null) {
+      suffixIcon = Icon(
+        LucideIcons.circle_alert,
+        color: colors.error,
+      );
+    } else {
+      suffixIcon = widget.suffix;
+    }
 
     return TextField(
       controller: widget.controller,
@@ -110,21 +130,31 @@ class _MbTextFieldState extends State<MbTextField> {
       inputFormatters: widget.inputFormatters,
       onChanged: widget.onChanged,
       onSubmitted: widget.onSubmitted,
-      style: theme.textTheme.bodyLarge,
+      style: theme.textTheme.bodyLarge?.copyWith(
+        color: widget.enabled ? colors.onSurface : colors.outline,
+      ),
       decoration: InputDecoration(
         labelText: widget.label,
+        labelStyle: TextStyle(
+          color: widget.errorText != null
+              ? colors.error
+              : (_focusNode.hasFocus ? colors.primary : colors.onSurfaceVariant),
+          fontWeight: _focusNode.hasFocus ? FontWeight.w600 : FontWeight.normal,
+        ),
         hintText: widget.hint,
         errorText: widget.errorText,
         helperText: widget.helperText,
-        prefixIcon: widget.prefixIcon,
-        suffixIcon: showToggle
-            ? IconButton(
-                icon: Icon(
-                    _obscured ? LucideIcons.eye_off : LucideIcons.eye,
+        prefixIcon: widget.prefixIcon != null
+            ? IconTheme.merge(
+                data: IconThemeData(
+                  color: widget.errorText != null
+                      ? colors.error
+                      : (_focusNode.hasFocus ? colors.primary : colors.onSurfaceVariant),
                 ),
-                onPressed: () => setState(() => _obscured = !_obscured),
+                child: widget.prefixIcon!,
               )
-            : widget.suffix,
+            : null,
+        suffixIcon: suffixIcon,
         counterText: widget.maxLength == null ? '' : null,
       ),
     );
